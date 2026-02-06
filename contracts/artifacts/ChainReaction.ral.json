@@ -1,0 +1,234 @@
+{
+  "version": "v4.3.0",
+  "name": "ChainReaction",
+  "bytecode": "0c07406640bf40f94110412a4144416401010305004038d30f196091a006190f7b56170316000c330e7bb4170416041600a91600a1071601a1091602a10aa0000d2aa100a007a1011604a1021603a0092aa1081603a103a00416002aa1040da10503a10605a000a0035f06a000a0021600a004a0057301010104004030d34ad877d7a0060c7bb417015617021602a00831117b0006170316001603340e7b16011600a9a0050d2aa1051603a1011601a1021602a1031602a0092aa108a00416002aa10406a000a0021600a004a0057301020002001ed3b02ce78c0003107ba004ce002c1367102d1700a00416002b1701a0021601a807a000a00216016004a1060ca1040ca1050ca10101000000010ad327625287a006194c02040256a0083402010000000709d3d50f1f95a000a001a002a003a004a006a0050201010101000bd348021c29a0060c7bb41600a9a00416002aa10401000000010ed3b1b69428a006194c02a00702a001a001a00a2c1367102d2a02",
+  "codeHash": "7ac0009d7006031dcf42b14134db105418e38e482921dc438256345eee61ac9d",
+  "fieldsSig": {
+    "names": [
+      "chainId",
+      "currentEntry",
+      "lastPlayer",
+      "lastEntryTimestamp",
+      "pot",
+      "playerCount",
+      "isActive",
+      "baseEntry",
+      "endTimestamp",
+      "durationMs",
+      "multiplierBps",
+      "houseFee"
+    ],
+    "types": [
+      "U256",
+      "U256",
+      "Address",
+      "U256",
+      "U256",
+      "U256",
+      "Bool",
+      "U256",
+      "U256",
+      "U256",
+      "U256",
+      "U256"
+    ],
+    "isMutable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "eventsSig": [
+    {
+      "name": "ChainStarted",
+      "fieldNames": [
+        "chainId",
+        "startBlock"
+      ],
+      "fieldTypes": [
+        "U256",
+        "U256"
+      ]
+    },
+    {
+      "name": "PlayerJoined",
+      "fieldNames": [
+        "chainId",
+        "player",
+        "entryFee",
+        "newPot",
+        "position"
+      ],
+      "fieldTypes": [
+        "U256",
+        "Address",
+        "U256",
+        "U256",
+        "U256"
+      ]
+    },
+    {
+      "name": "ChainEnded",
+      "fieldNames": [
+        "chainId",
+        "winner",
+        "payout"
+      ],
+      "fieldTypes": [
+        "U256",
+        "Address",
+        "U256"
+      ]
+    },
+    {
+      "name": "ChainTimeout",
+      "fieldNames": [
+        "chainId",
+        "player"
+      ],
+      "fieldTypes": [
+        "U256",
+        "Address"
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "startChain",
+      "paramNames": [
+        "payment",
+        "durationGameMs",
+        "multiplierGameBps"
+      ],
+      "paramTypes": [
+        "U256",
+        "U256",
+        "U256"
+      ],
+      "paramIsMutable": [
+        false,
+        false,
+        false
+      ],
+      "returnTypes": []
+    },
+    {
+      "name": "joinChain",
+      "paramNames": [
+        "payment"
+      ],
+      "paramTypes": [
+        "U256"
+      ],
+      "paramIsMutable": [
+        false
+      ],
+      "returnTypes": []
+    },
+    {
+      "name": "endChain",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": []
+    },
+    {
+      "name": "canEnd",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "Bool"
+      ]
+    },
+    {
+      "name": "getChainInfo",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "U256",
+        "U256",
+        "Address",
+        "U256",
+        "U256",
+        "Bool",
+        "U256"
+      ]
+    },
+    {
+      "name": "incentive",
+      "paramNames": [
+        "amount"
+      ],
+      "paramTypes": [
+        "U256"
+      ],
+      "paramIsMutable": [
+        false
+      ],
+      "returnTypes": []
+    },
+    {
+      "name": "getNextEntryPrice",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "U256"
+      ]
+    }
+  ],
+  "constants": [],
+  "enums": [
+    {
+      "name": "ErrorCodes",
+      "fields": [
+        {
+          "name": "ChainNotActive",
+          "value": {
+            "type": "U256",
+            "value": "0"
+          }
+        },
+        {
+          "name": "InsufficientPayment",
+          "value": {
+            "type": "U256",
+            "value": "2"
+          }
+        },
+        {
+          "name": "ChainAlreadyActive",
+          "value": {
+            "type": "U256",
+            "value": "3"
+          }
+        },
+        {
+          "name": "TooEarlyToEnd",
+          "value": {
+            "type": "U256",
+            "value": "4"
+          }
+        },
+        {
+          "name": "GameEnded",
+          "value": {
+            "type": "U256",
+            "value": "5"
+          }
+        }
+      ]
+    }
+  ]
+}

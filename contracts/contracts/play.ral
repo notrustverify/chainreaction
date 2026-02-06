@@ -1,0 +1,152 @@
+// Chain Reaction Game Contract
+// Players join a chain by paying entry + 10% more than previous
+// If no one joins within timeout blocks, last player wins pot
+
+Contract ChainReaction(
+    mut chainId: U256,
+    mut currentEntry: U256,        // Current entry price
+    mut lastPlayer: Address,       // Last player who joined
+    mut lastEntryTimestamp: U256,     // Block when last player joined
+    mut pot: U256,                 // Total pot
+    mut playerCount: U256,         // Number of players in current chain
+    mut isActive: Bool,            // Is chain active?
+    mut baseEntry: U256,               // Starting entry (1 ALPH)
+    mut endTimestamp: U256,
+    mut durationMs: U256,
+    mut multiplierBps: U256,        // Multiplier in basis points (1000 = 10%)
+    houseFee: U256                 // House fee in basis points (500 = 5%)
+) {
+
+    // Events
+    event ChainStarted(chainId: U256, startBlock: U256)
+    event PlayerJoined(chainId: U256, player: Address, entryFee: U256, newPot: U256, position: U256)
+    event ChainEnded(chainId: U256, winner: Address, payout: U256)
+    event ChainTimeout(chainId: U256, player: Address)
+
+    enum ErrorCodes {
+        ChainNotActive = 0
+        InsufficientPayment = 2
+        ChainAlreadyActive = 3
+        TooEarlyToEnd = 4
+        GameEnded = 5
+    }
+
+    // Start a new chain
+    @using(preapprovedAssets = true, updateFields = true, checkExternalCaller = false, assetsInContract = true)
+    pub fn startChain(payment: U256, durationGameMs: U256, multiplierGameBps: U256) -> () {
+        // Check no active chain
+        assert!(!isActive, ErrorCodes.ChainAlreadyActive)
+        let timestamp = blockTimeStamp!()
+
+        // Require base entry payment
+        assert!(payment > 0, ErrorCodes.InsufficientPayment)
+        let caller = callerAddress!()
+
+        transferTokenToSelf!(caller, ALPH, payment)
+
+        // Initialize new chain
+        baseEntry = payment
+        durationMs = durationGameMs
+        multiplierBps = multiplierGameBps
+        chainId = chainId + 1
+        currentEntry = baseEntry
+        lastPlayer = caller
+        endTimestamp = timestamp + durationMs
+        lastEntryTimestamp = timestamp
+        pot = pot + payment
+        playerCount = 1
+        isActive = true
+
+        emit ChainStarted(chainId, lastEntryTimestamp)
+        emit PlayerJoined(chainId, lastPlayer, payment, pot, playerCount)
+    }
+
+    // Join existing chain
+    @using(preapprovedAssets = true, updateFields = true, checkExternalCaller = false, assetsInContract = true)
+    pub fn joinChain(payment: U256) -> () {
+        // Verify chain is active
+        assert!(isActive, ErrorCodes.ChainNotActive)
+        let caller = callerAddress!()
+        
+        // Check max players not reached
+        //assert!(playerCount < maxPlayers, ErrorCodes.ChainFull)
+        let timestamp = blockTimeStamp!()
+        assert!(timestamp < endTimestamp, ErrorCodes.GameEnded)
+
+        // Calculate required entry (previous + 10%)
+        let requiredEntry = getNextEntryPrice()
+        assert!(payment >= requiredEntry, ErrorCodes.InsufficientPayment)
+
+        transferTokenToSelf!(caller, ALPH, payment)
+
+        // Update state
+        playerCount = playerCount + 1
+        currentEntry = requiredEntry
+        lastPlayer = caller
+        lastEntryTimestamp = timestamp
+        endTimestamp = timestamp + durationMs
+        pot = pot + payment
+
+        emit PlayerJoined(chainId, lastPlayer, payment, pot, playerCount)
+    }
+
+    // End chain and pay winner (callable by anyone after timeout)
+    @using(assetsInContract = true, updateFields = true, checkExternalCaller = false)
+    pub fn endChain() -> () {
+
+        assert!(canEnd(), ErrorCodes.TooEarlyToEnd)
+
+        // Calculate payout (pot - house fee)
+        let houseCut = pot * houseFee / 10000
+        let winnerPayout = pot - houseCut
+
+        // Pay winner
+        transferTokenFromSelf!(lastPlayer, ALPH, winnerPayout)
+
+        emit ChainEnded(chainId, lastPlayer, winnerPayout)
+
+        // Reset for next chain
+        isActive = false
+        pot = 0
+        playerCount = 0
+        currentEntry = 0
+    }
+
+    // Check if chain can be ended (view function)
+    pub fn canEnd() -> Bool {
+        if (!isActive) {
+            return false
+        }
+
+        return blockTimeStamp!() >= endTimestamp
+    }
+
+    // Get current chain info (view function)
+    pub fn getChainInfo() -> (U256, U256, Address, U256, U256, Bool, U256) {
+        return (chainId, currentEntry, lastPlayer, lastEntryTimestamp, pot, isActive, playerCount)
+    }
+
+    @using(preapprovedAssets = true, updateFields = true, checkExternalCaller = false, assetsInContract = true)
+    pub fn incentive(amount: U256) -> () {
+        assert!(isActive, ErrorCodes.ChainNotActive)
+
+        transferTokenToSelf!(callerAddress!(), ALPH, amount)
+        pot = pot + amount
+    }
+
+    // Calculate next entry price (view function)
+    pub fn getNextEntryPrice() -> U256 {
+        if (!isActive) {
+            return baseEntry
+        }
+        return currentEntry + (currentEntry * multiplierBps / 10000)
+    }
+
+    
+    // Withdraw house fees (owner only)
+   // @using(assetsInContract = true, checkExternalCaller = true)
+   // pub fn withdrawFees(to: Address, amount: U256) -> () {
+        // In production, add owner check here
+   //     transferTokenFromSelf!(to, ALPH, amount)
+   // }
+}

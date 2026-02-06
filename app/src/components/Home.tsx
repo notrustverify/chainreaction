@@ -1,24 +1,24 @@
 'use client'
 
-import React from 'react'
-import Head from 'next/head'
-import styles from '@/styles/Home.module.css'
-import { TokenDapp } from './TokenDapp'
-import { AlephiumConnectButton, useWallet } from '@alephium/web3-react'
-import { tokenFaucetConfig } from '@/services/utils'
+import React, { useRef, useCallback } from 'react'
+import { GameBoard } from './GameBoard'
+import { NavBar } from './NavBar'
+import { gameConfig } from '@/services/utils'
 
 export default function Home() {
-  const { connectionStatus } = useWallet()
+  const connectRef = useRef<HTMLDivElement>(null)
+
+  const openConnect = useCallback(() => {
+    const btn = connectRef.current?.querySelector('button')
+    btn?.click()
+  }, [])
 
   return (
-    <>
-      <div className={styles.container}>
-        <AlephiumConnectButton />
-
-        {connectionStatus === 'connected' && (
-          <TokenDapp config={tokenFaucetConfig} />
-        )}
-      </div>
-    </>
+    <div className="min-h-screen flex flex-col items-center bg-white">
+      <NavBar ref={connectRef} />
+      <main className="flex-1 flex flex-col items-center justify-center w-full">
+        <GameBoard config={gameConfig} onConnectRequest={openConnect} />
+      </main>
+    </div>
   )
 }

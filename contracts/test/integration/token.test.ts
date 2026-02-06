@@ -1,45 +1,284 @@
-import { web3, DUST_AMOUNT } from '@alephium/web3'
+import { web3, DUST_AMOUNT, ONE_ALPH, prettifyAttoAlphAmount, number256ToBigint, number256ToNumber, NULL_CONTRACT_ADDRESS, sleep } from '@alephium/web3'
 import { testNodeWallet } from '@alephium/web3-test'
 import { deployToDevnet } from '@alephium/cli'
-import { TokenFaucet, Withdraw } from '../../artifacts/ts'
+import { ChainReaction } from '../../artifacts/ts'
+import { getRandomSigner, transferAlphTo } from '../utils'
+import { bitTorrent } from 'viem/chains'
 
 describe('integration tests', () => {
   beforeAll(async () => {
     web3.setCurrentNodeProvider('http://127.0.0.1:22973', undefined, fetch)
   })
 
-  it('should withdraw on devnet', async () => {
-    const signer = await testNodeWallet()
-    const deployments = await deployToDevnet()
-
-    // Test with all of the addresses of the wallet
-    for (const account of await signer.getAccounts()) {
-      const testAddress = account.address
-      await signer.setSelectedAccount(testAddress)
-      const testGroup = account.group
-
-      const faucet = deployments.getInstance(TokenFaucet, testGroup)
-      if (faucet === undefined) {
-        console.log(`The contract is not deployed on group ${account.group}`)
-        continue
-      }
-
-      expect(faucet.groupIndex).toEqual(testGroup)
-      const initialState = await faucet.fetchState()
-      const initialBalance = initialState.fields.balance
-
-      // Call `withdraw` function 10 times
-      for (let i = 0; i < 10; i++) {
-        await faucet.transact.withdraw({
-          signer: signer,
-          attoAlphAmount: DUST_AMOUNT * 3n,
-          args: { amount: 1n }
-        })
-
-        const newState = await faucet.fetchState()
-        const newBalance = newState.fields.balance
-        expect(newBalance).toEqual(initialBalance - BigInt(i) - 1n)
-      }
+  let minters: any[]
+  beforeEach(async () => {
+    minters = []
+    for (let i = 0; i < 10; i++) {
+      minters.push(await getRandomSigner(0))
     }
+
+    for (const minter of minters) {
+      await transferAlphTo(minter.address, 100n * ONE_ALPH)
+    }
+  }, 20000)
+
+  it('start game', async () => {
+    const signer = await testNodeWallet()
+
+    const now = Date.now()*1000
+      const deployed = await ChainReaction.deploy(signer, {
+    initialFields: {
+      baseEntry: 0n,
+      chainId: 0n,
+      currentEntry: 0n,
+      endTimestamp: 0n,
+      houseFee: 0n,
+      isActive: false,
+      lastEntryTimestamp: 0n,
+      durationMs: 1000n,
+      lastPlayer: NULL_CONTRACT_ADDRESS,
+      multiplierBps: 1000n,  // <-- customize per test
+      playerCount: 0n,
+      pot: 0n
+    }
+  })
+
+      const game = deployed.contractInstance
+      expect(game).toBeDefined()
+
+      if (!game) {
+      throw new Error('Game is undefined')
+    }
+      const initialState = await game.fetchState()
+      const multiplierBps = initialState.fields.multiplierBps
+      expect(multiplierBps).toEqual(1000n)
+      expect(initialState.fields.isActive).toEqual(false)
+
+      await game.transact.startChain({
+        args: {
+          payment: 10n,
+          durationGameMs: 1000n,
+          multiplierGameBps: 1000n
+        },
+        signer: minters[0],
+        attoAlphAmount: 10n + ONE_ALPH
+      })
+
+
+         let state = await game.fetchState()
+         
+         expect(state.fields.pot).toEqual(10n)
+         expect(state.asset.alphAmount).toEqual(1n*10n**17n+10n)
+
+      const nextPayment = (await game.view.getNextEntryPrice()).returns
+      expect(nextPayment).toEqual(11n)
+
+      for (let index = 1; index < 4; index++) {
+        const payment = (await game.view.getNextEntryPrice()).returns
+        await game.transact.joinChain({
+        args: {
+          payment: payment
+        },
+        signer: minters[index],
+        attoAlphAmount: nextPayment + ONE_ALPH
+      })
+        
+      }
+
+      const lastPayment = (await game.view.getNextEntryPrice()).returns
+      console.log(lastPayment)
+      await sleep(1000)
+
+      await game.transact.endChain({
+        signer: minters[0],
+        attoAlphAmount: ONE_ALPH
+      })
+    
+    state = await game.fetchState()
+
+    expect(state.asset.alphAmount).toEqual(1n*10n**17n)
+
+    
+  }, 20000)
+
+    it('start game and incentive it', async () => {
+    const signer = await testNodeWallet()
+
+    const now = Date.now()*1000
+      const deployed = await ChainReaction.deploy(signer, {
+    initialFields: {
+      baseEntry: 0n,
+      chainId: 0n,
+      currentEntry: 0n,
+      endTimestamp: 0n,
+      houseFee: 0n,
+      isActive: false,
+      lastEntryTimestamp: 0n,
+      durationMs: 1000n,
+      lastPlayer: NULL_CONTRACT_ADDRESS,
+      multiplierBps: 1000n,  // <-- customize per test
+      playerCount: 0n,
+      pot: 0n
+    }
+  })
+
+      const game = deployed.contractInstance
+      expect(game).toBeDefined()
+
+      if (!game) {
+      throw new Error('Game is undefined')
+    }
+      const initialState = await game.fetchState()
+      const multiplierBps = initialState.fields.multiplierBps
+      expect(multiplierBps).toEqual(1000n)
+      expect(initialState.fields.isActive).toEqual(false)
+
+      await game.transact.startChain({
+        args: {
+          payment: 10n,
+          durationGameMs: 1000n,
+          multiplierGameBps: 1000n
+        },
+        signer: minters[0],
+        attoAlphAmount: 10n + ONE_ALPH
+      })
+
+      await game.transact.incentive({
+        args: {
+          amount: 10n*ONE_ALPH
+        },
+        attoAlphAmount: 10n*ONE_ALPH,
+        signer: signer
+      })
+
+      let state = await game.fetchState()
+         
+      expect(state.asset.alphAmount).toEqual(1n*10n**17n+10n+10n*ONE_ALPH)
+      expect(state.fields.pot).toEqual(10n+10n*ONE_ALPH)
+      
+      const nextPayment = (await game.view.getNextEntryPrice()).returns
+      expect(nextPayment).toEqual(11n)
+
+
+      for (let index = 1; index < 4; index++) {
+        const payment = (await game.view.getNextEntryPrice()).returns
+        await game.transact.joinChain({
+        args: {
+          payment: payment
+        },
+        signer: minters[index],
+        attoAlphAmount: nextPayment + ONE_ALPH
+      })
+        
+      }
+
+
+      const lastPayment = (await game.view.getNextEntryPrice()).returns
+      console.log(lastPayment)
+      await sleep(1000)
+
+      await game.transact.endChain({
+        signer: minters[0],
+        attoAlphAmount: ONE_ALPH
+      })
+    
+    state = await game.fetchState()
+
+    expect(state.asset.alphAmount).toEqual(1n*10n**17n)
+
+    
+  }, 20000)
+
+  it('start game with players playing', async () => {
+    const signer = await testNodeWallet()
+
+    let now = BigInt(Date.now())
+      const deployed = await ChainReaction.deploy(signer, {
+    initialFields: {
+      baseEntry: 0n,
+      chainId: 0n,
+      currentEntry: 0n,
+      endTimestamp: 0n,
+      houseFee: 0n,
+      isActive: false,
+      lastEntryTimestamp: 0n,
+      durationMs: 0n,
+      lastPlayer: NULL_CONTRACT_ADDRESS,
+      multiplierBps: 1000n,  // <-- customize per test
+      playerCount: 0n,
+      pot: 0n
+    }
+  })
+
+      const game = deployed.contractInstance
+      expect(game).toBeDefined()
+
+      if (!game) {
+      throw new Error('Game is undefined')
+    }
+      const initialState = await game.fetchState()
+      const multiplierBps = initialState.fields.multiplierBps
+      expect(multiplierBps).toEqual(1000n)
+      expect(initialState.fields.isActive).toEqual(false)
+
+      await game.transact.startChain({
+        args: {
+          payment: 10n,
+          durationGameMs: 100n,
+          multiplierGameBps: 1000n
+        },
+        signer: minters[0],
+        attoAlphAmount: 10n + ONE_ALPH
+      })
+
+
+         let state = await game.fetchState()
+         
+         expect(state.fields.pot).toEqual(10n)
+         expect(state.asset.alphAmount).toEqual(1n*10n**17n+10n)
+
+
+      const nextPayment = (await game.view.getNextEntryPrice()).returns
+      expect(nextPayment).toEqual(11n)
+
+      for (let index = 1; index < 6; index++) {
+
+        const payment = (await game.view.getNextEntryPrice()).returns
+        const canEnd = (await game.view.canEnd()).returns
+        
+        expect(canEnd).toBe(false)
+        state = await game.fetchState()
+
+        now = BigInt(Date.now())
+      expect(state.fields.endTimestamp).toBeGreaterThan(now)
+
+        await game.transact.joinChain({
+        args: {
+          payment: payment
+        },
+        signer: minters[index],
+        attoAlphAmount: nextPayment + ONE_ALPH
+      })
+        
+      }
+
+      const lastPayment = (await game.view.getNextEntryPrice()).returns
+      await sleep(1000)
+
+      state = await game.fetchState()
+      now = BigInt(Date.now())
+      expect(state.fields.endTimestamp).toBeLessThanOrEqual(now)
+      expect((await game.view.canEnd()).returns).toBe(true)
+
+      await game.transact.endChain({
+        signer: minters[0],
+        attoAlphAmount: ONE_ALPH
+      })
+    
+    state = await game.fetchState()
+
+    expect(state.asset.alphAmount).toEqual(1n*10n**17n)
+
+    
   }, 20000)
 })
