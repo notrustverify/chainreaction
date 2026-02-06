@@ -22,22 +22,24 @@ export const GameStats: FC<GameStatsProps> = ({
   const isCurrentUserLast = currentUserAddress === lastPlayer
 
   return (
-    <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-      <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
+    <div className="flex flex-col gap-3 w-full max-w-sm">
+      <div className="flex flex-col items-center p-5 bg-gray-50 rounded-xl border border-gray-100">
         <span className="text-[11px] text-gray-400 uppercase tracking-wider">Pot</span>
-        <span className="text-lg font-bold text-gray-900 mt-1">{formatTokenAmount(pot, tokenDecimals)} {tokenSymbol}</span>
+        <span className="text-2xl font-bold text-gray-900 mt-1">{formatTokenAmount(pot, tokenDecimals)} {tokenSymbol}</span>
       </div>
-      <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
-        <span className="text-[11px] text-gray-400 uppercase tracking-wider">Next Entry</span>
-        <span className="text-lg font-bold text-gray-900 mt-1">{formatTokenAmount(entryPrice, tokenDecimals)} {tokenSymbol}</span>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
+          <span className="text-[11px] text-gray-400 uppercase tracking-wider">Next Entry</span>
+          <span className="text-lg font-bold text-gray-900 mt-1">{formatTokenAmount(entryPrice, tokenDecimals)} {tokenSymbol}</span>
+        </div>
+        <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
+          <span className="text-[11px] text-gray-400 uppercase tracking-wider">Last Player</span>
+          <span className={`text-lg font-bold mt-1 ${isCurrentUserLast ? 'text-emerald-500' : 'text-gray-900'}`}>
+            {isCurrentUserLast ? 'You!' : shortenAddress(lastPlayer)}
+          </span>
+        </div>
       </div>
-      <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
-        <span className="text-[11px] text-gray-400 uppercase tracking-wider">Last Player</span>
-        <span className={`text-lg font-bold mt-1 ${isCurrentUserLast ? 'text-emerald-500' : 'text-gray-900'}`}>
-          {isCurrentUserLast ? 'You!' : shortenAddress(lastPlayer)}
-        </span>
-      </div>
-      <div className="col-span-2 text-center text-xs text-gray-400 pt-1">
+      <div className="text-center text-xs text-gray-400">
         Chain #{chainId.toString()} &middot; +{multiplierPct}% per play
       </div>
     </div>
