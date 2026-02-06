@@ -257,9 +257,9 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
                 id="duration"
                 type="number"
                 min={1}
-                max={72}
+                max={3}
                 value={durationHours}
-                onChange={(e) => setDurationHours(Math.max(1, Math.min(72, Number(e.target.value))))}
+                onChange={(e) => setDurationHours(Math.max(1, Math.min(3, Number(e.target.value))))}
                 className="w-full px-3 py-2 text-center text-base rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
               />
             </div>
