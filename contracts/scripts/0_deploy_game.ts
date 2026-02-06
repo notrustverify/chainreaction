@@ -16,7 +16,7 @@ const deployGame: DeployFunction<Settings> = async (
       baseEntry: 0n,
       chainId: 0n,
       currentEntry: 0n,
-      endTimestamp: 1770329019000n,
+      endTimestamp: 0n,
       houseFee: 0n,
       isActive: false,
       lastEntryTimestamp: 0n,
@@ -24,7 +24,9 @@ const deployGame: DeployFunction<Settings> = async (
       lastPlayer: NULL_CONTRACT_ADDRESS,
       multiplierBps: 1000n,
       playerCount: 0n,
-      pot: 0n
+      pot: 0n,
+      durationDecreaseMs: 60n*1000n,
+      minDuration: 60n*1000n
 
     }
   })

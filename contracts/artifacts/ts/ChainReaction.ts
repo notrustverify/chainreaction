@@ -50,6 +50,8 @@ export namespace ChainReactionTypes {
     endTimestamp: bigint;
     durationMs: bigint;
     multiplierBps: bigint;
+    durationDecreaseMs: bigint;
+    minDuration: bigint;
     houseFee: bigint;
   };
 
@@ -198,6 +200,7 @@ class Factory extends ContractFactory<
       ChainAlreadyActive: BigInt("3"),
       TooEarlyToEnd: BigInt("4"),
       GameEnded: BigInt("5"),
+      DurationToLow: BigInt("6"),
     },
   };
 
@@ -287,7 +290,7 @@ export const ChainReaction = new Factory(
   Contract.fromJson(
     ChainReactionContractJson,
     "",
-    "9d8f1ecc8d11112d085763cbe5ca1064f0e7ee05e8d1f3bb7052418b93437db7",
+    "d65bc59454d1308de7cca9024f0c054dfd01d20b051b2c732b01c9142cd25f4d",
     []
   )
 );

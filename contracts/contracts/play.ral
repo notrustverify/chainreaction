@@ -14,6 +14,8 @@ Contract ChainReaction(
     mut endTimestamp: U256,
     mut durationMs: U256,
     mut multiplierBps: U256,        // Multiplier in basis points (1000 = 10%)
+    durationDecreaseMs: U256,
+    minDuration: U256,
     houseFee: U256                 // House fee in basis points (500 = 5%)
 ) {
 
@@ -30,6 +32,7 @@ Contract ChainReaction(
         ChainAlreadyActive = 3
         TooEarlyToEnd = 4
         GameEnded = 5
+        DurationToLow = 6
     }
 
     // Start a new chain
@@ -37,6 +40,8 @@ Contract ChainReaction(
     pub fn startChain(payment: U256, durationGameMs: U256, multiplierGameBps: U256) -> () {
         // Check no active chain
         assert!(!isActive, ErrorCodes.ChainAlreadyActive)
+        assert!(durationGameMs >= durationDecreaseMs, ErrorCodes.DurationToLow)
+
         let timestamp = blockTimeStamp!()
 
         // Require base entry payment
@@ -85,7 +90,17 @@ Contract ChainReaction(
         currentEntry = requiredEntry
         lastPlayer = caller
         lastEntryTimestamp = timestamp
-        endTimestamp = timestamp + durationMs
+
+        let mut totalDurationDecrease = durationMs
+
+        // set the smallest duration timer to 1m
+        if totalDurationDecrease <= minDuration {
+            totalDurationDecrease = minDuration
+        } else {
+            totalDurationDecrease = durationMs - (playerCount * durationDecreaseMs) 
+        }
+
+        endTimestamp = timestamp + totalDurationDecrease
         pot = pot + payment
 
         emit PlayerJoined(chainId, lastPlayer, payment, pot, playerCount)
