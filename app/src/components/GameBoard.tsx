@@ -67,16 +67,7 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
 
   useEffect(() => {
     if (wasLastPlayerRef.current && !isLastPlayer && soundEnabled) {
-      const ctx = new AudioContext()
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.frequency.value = 880
-      gain.gain.value = 0.3
-      osc.start()
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5)
-      osc.stop(ctx.currentTime + 0.5)
+      new Audio('/ding.mp3').play().catch(() => {})
     }
     wasLastPlayerRef.current = isLastPlayer
   }, [isLastPlayer, soundEnabled])
