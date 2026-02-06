@@ -15,6 +15,8 @@ export interface GameState {
   baseEntry: bigint
   multiplierBps: bigint
   durationMs: bigint
+  durationDecreaseMs: bigint
+  minDuration: bigint
   tokenId: string
 }
 
@@ -53,6 +55,8 @@ export async function fetchGameState(contract: ChainReactionInstance): Promise<G
     baseEntry: fields.baseEntry,
     multiplierBps: fields.multiplierBps,
     durationMs: fields.durationMs,
+    durationDecreaseMs: fields.durationDecreaseMs,
+    minDuration: fields.minDuration,
     tokenId: fields.tokenId,
   }
 }
