@@ -291,6 +291,19 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
         </p>
       )}
 
+      <details className="w-full max-w-sm mt-2">
+        <summary className="text-sm text-gray-400 cursor-pointer hover:text-emerald-500 transition-colors text-center select-none">
+          How to play
+        </summary>
+        <div className="mt-3 text-sm text-gray-500 space-y-2 p-4 bg-gray-50 rounded-xl border border-gray-100">
+          <p><span className="font-semibold text-gray-700">1. Start a chain</span> — Pick a token, set the entry price, countdown duration, and price increase. You become the first player.</p>
+          <p><span className="font-semibold text-gray-700">2. Join the chain</span> — Each new player pays a higher entry fee (previous price + the % increase). Every join resets the countdown.</p>
+          <p><span className="font-semibold text-gray-700">3. The clock tightens</span> — The countdown shrinks with each player, making the game more intense as it goes on.</p>
+          <p><span className="font-semibold text-gray-700">4. Last player wins</span> — When the timer runs out, the last person who joined wins the entire pot. Anyone can trigger the payout.</p>
+          <p className="text-gray-400 text-xs pt-1">You can also boost the pot at any time to make the prize more attractive without resetting the timer.</p>
+        </div>
+      </details>
+
       <p className="text-xs text-gray-400 mt-4">
         Built by{' '}
         <a href="https://notrustverify.ch" target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-600 underline">

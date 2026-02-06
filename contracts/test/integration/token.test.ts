@@ -271,7 +271,6 @@ describe('integration tests', () => {
     const nextPayment = (await game.view.getNextEntryPrice()).returns
     expect(nextPayment).toEqual(11n)
 
-
     for (let index = 1; index < 4; index++) {
 
       await transferTokenTo(minters[index].address, tokenTest.tokenId,20n)
@@ -293,6 +292,11 @@ describe('integration tests', () => {
 
     }
 
+    state = await game.fetchState()
+    expect(state.asset.tokens).toEqual([{
+        id: tokenTest.tokenId,
+        amount: 146n
+      }])
 
     const lastPayment = (await game.view.getNextEntryPrice()).returns
     await sleep(500)
@@ -305,6 +309,7 @@ describe('integration tests', () => {
     state = await game.fetchState()
 
     expect(state.asset.alphAmount).toEqual(1n * 10n ** 17n)
+    expect(state.asset.tokens).toEqual([])
 
 
   }, 20000)
@@ -392,6 +397,7 @@ describe('integration tests', () => {
     now = BigInt(Date.now())
     expect(state.fields.endTimestamp).toBeLessThanOrEqual(now)
     expect((await game.view.canEnd()).returns).toBe(true)
+  
 
     await game.transact.endChain({
       signer: minters[0],
@@ -401,6 +407,7 @@ describe('integration tests', () => {
     state = await game.fetchState()
 
     expect(state.asset.alphAmount).toEqual(1n * 10n ** 17n)
+    expect(state.asset.tokens).toEqual([])
 
 
   }, 20000)
