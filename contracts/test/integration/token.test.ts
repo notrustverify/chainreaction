@@ -41,7 +41,8 @@ describe('integration tests', () => {
         pot: 0n,
         durationDecreaseMs: 0n,
         minDuration: 500n,
-        tokenId: ALPH_TOKEN_ID
+        tokenId: ALPH_TOKEN_ID,
+        boostAmount: 0n
       }
     })
 
@@ -123,7 +124,8 @@ describe('integration tests', () => {
         pot: 0n,
         durationDecreaseMs: 500n,
         minDuration: 500n,
-        tokenId: ALPH_TOKEN_ID
+        tokenId: ALPH_TOKEN_ID,
+        boostAmount: 0n
       }
     })
 
@@ -221,7 +223,8 @@ describe('integration tests', () => {
         pot: 0n,
         durationDecreaseMs: 500n,
         minDuration: 500n,
-        tokenId: tokenTest.tokenId
+        tokenId: tokenTest.tokenId,
+        boostAmount: 0n
       }
     })
 
@@ -333,7 +336,8 @@ describe('integration tests', () => {
         pot: 0n,
         durationDecreaseMs: 500n,
         minDuration: 500n,
-        tokenId: ALPH_TOKEN_ID
+        tokenId: ALPH_TOKEN_ID,
+        boostAmount: 0n
       }
     })
 
@@ -433,7 +437,8 @@ describe('integration tests', () => {
         pot: 0n,
         durationDecreaseMs: 500n,
         minDuration: 500n,
-        tokenId: ALPH_TOKEN_ID
+        tokenId: ALPH_TOKEN_ID,
+        boostAmount: 0n
       }
     })
 

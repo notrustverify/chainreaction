@@ -8,6 +8,7 @@ Contract ChainReaction(
     mut lastPlayer: Address,       // Last player who joined
     mut lastEntryTimestamp: U256,     // Block when last player joined
     mut pot: U256,                 // Total pot
+    mut boostAmount: U256,
     mut playerCount: U256,         // Number of players in current chain
     mut isActive: Bool,            // Is chain active?
     mut baseEntry: U256,               // Starting entry (1 ALPH)
@@ -113,10 +114,12 @@ Contract ChainReaction(
 
         assert!(canEnd(), ErrorCodes.TooEarlyToEnd)
 
-        // Pay winner
-        transferTokenFromSelf!(lastPlayer, tokenId, pot)
+        let totalAmount = boostAmount + pot 
 
-        emit ChainEnded(chainId, lastPlayer, pot)
+        // Pay winner
+        transferTokenFromSelf!(lastPlayer, tokenId, totalAmount)
+
+        emit ChainEnded(chainId, lastPlayer, totalAmount)
 
         // Reset for next chain
         isActive = false
@@ -145,7 +148,7 @@ Contract ChainReaction(
         let caller = callerAddress!()
 
         transferTokenToSelf!(caller, tokenId, amount)
-        pot = pot + amount
+        boostAmount = boostAmount + amount
 
         emit PotBoosted(caller, amount)
     }
@@ -155,7 +158,8 @@ Contract ChainReaction(
         if (!isActive) {
             return baseEntry
         }
-        return currentEntry + (currentEntry * multiplierBps / 10000)
+       // return currentEntry + (currentEntry * multiplierBps / 10000)
+       return currentEntry + (pot * multiplierBps / 10000)
     }
 
 }

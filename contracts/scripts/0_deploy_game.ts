@@ -24,6 +24,7 @@ const deployGame: DeployFunction<Settings> = async (
       multiplierBps: 1000n,
       playerCount: 0n,
       pot: 0n,
+      boostAmount: 0n,
       durationDecreaseMs: 60n*1000n,
       minDuration: 60n*1000n,
       tokenId: ALPH_TOKEN_ID

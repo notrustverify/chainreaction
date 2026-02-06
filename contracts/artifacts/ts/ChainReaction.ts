@@ -44,6 +44,7 @@ export namespace ChainReactionTypes {
     lastPlayer: Address;
     lastEntryTimestamp: bigint;
     pot: bigint;
+    boostAmount: bigint;
     playerCount: bigint;
     isActive: boolean;
     baseEntry: bigint;
@@ -297,7 +298,7 @@ export const ChainReaction = new Factory(
   Contract.fromJson(
     ChainReactionContractJson,
     "",
-    "22d646975d15919595de18aaa430bff8a912f82f97a2992bde58f0e0a56a18fa",
+    "a0ec040c29556615ebd7aead19a51e192f84a1f280c0bc4369974840cbf3dbf8",
     []
   )
 );
