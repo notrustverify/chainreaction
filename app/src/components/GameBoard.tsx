@@ -268,13 +268,13 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
                   id="multiplier"
                   type="range"
                   min={1}
-                  max={10}
+                  max={100}
                   step={1}
                   value={multiplierPct}
                   onChange={(e) => setMultiplierPct(Number(e.target.value))}
                   className="flex-1 accent-emerald-500"
                 />
-                <span className="text-base font-bold text-emerald-600 min-w-[3ch] text-right">{multiplierPct}%</span>
+                <span className="text-base font-bold text-emerald-600 min-w-[4ch] text-right">{multiplierPct}%</span>
               </div>
             </div>
           </div>
