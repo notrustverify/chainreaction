@@ -7,7 +7,6 @@ import { formatTokenAmount } from '@/services/tokenList'
 interface GameStatsProps {
   pot: bigint
   entryPrice: bigint
-  playerCount: bigint
   lastPlayer: string
   chainId: bigint
   multiplierBps: bigint
@@ -17,7 +16,7 @@ interface GameStatsProps {
 }
 
 export const GameStats: FC<GameStatsProps> = ({
-  pot, entryPrice, playerCount, lastPlayer, chainId, multiplierBps, currentUserAddress, tokenSymbol, tokenDecimals
+  pot, entryPrice, lastPlayer, chainId, multiplierBps, currentUserAddress, tokenSymbol, tokenDecimals
 }) => {
   const multiplierPct = Number(multiplierBps) / 100
   const isCurrentUserLast = currentUserAddress === lastPlayer
@@ -31,10 +30,6 @@ export const GameStats: FC<GameStatsProps> = ({
       <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
         <span className="text-[11px] text-gray-400 uppercase tracking-wider">Next Entry</span>
         <span className="text-lg font-bold text-gray-900 mt-1">{formatTokenAmount(entryPrice, tokenDecimals)} {tokenSymbol}</span>
-      </div>
-      <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
-        <span className="text-[11px] text-gray-400 uppercase tracking-wider">Players</span>
-        <span className="text-lg font-bold text-gray-900 mt-1">{playerCount.toString()}</span>
       </div>
       <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
         <span className="text-[11px] text-gray-400 uppercase tracking-wider">Last Player</span>

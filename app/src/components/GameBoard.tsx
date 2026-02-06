@@ -49,7 +49,7 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
 
   const uiState = deriveUIState(gameState, isLoading, error)
 
-  const isLastPlayer = account && gameState
+  const isLastPlayer = !ongoingTxId && account && gameState
     ? account.address === gameState.lastPlayer
     : false
 
@@ -119,8 +119,8 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
         try {
           const result = await provider.transactions.getTransactionsStatus({ txId: ongoingTxId })
           if (!cancelled && result.type === 'Confirmed') {
-            setOngoingTxId(undefined)
             await refresh()
+            setOngoingTxId(undefined)
             return
           }
         } catch { /* ignore polling errors */ }
@@ -142,7 +142,7 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
         return { label: 'Start Chain', onClick: handleStartChain, disabled: !!ongoingTxId, variant: 'start' as const }
       case 'active':
         return {
-          label: isLastPlayer ? 'Waiting...' : `Play\n${fmt(gameState!.nextEntryPrice)} ${activeToken.symbol}`,
+          label: isLastPlayer ? 'You\'re in the lead!' : `Play\n${fmt(gameState!.nextEntryPrice)} ${activeToken.symbol}`,
           onClick: isLastPlayer ? undefined : handleJoinChain,
           disabled: !!ongoingTxId || !!isLastPlayer,
           variant: 'join' as const,
@@ -187,11 +187,10 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
           <GameStats
             pot={gameState.pot}
             entryPrice={gameState.nextEntryPrice}
-            playerCount={gameState.playerCount}
             lastPlayer={gameState.lastPlayer}
             chainId={gameState.chainId}
             multiplierBps={gameState.multiplierBps}
-            currentUserAddress={account?.address}
+            currentUserAddress={ongoingTxId ? undefined : account?.address}
             tokenSymbol={activeToken.symbol}
             tokenDecimals={activeToken.decimals}
           />

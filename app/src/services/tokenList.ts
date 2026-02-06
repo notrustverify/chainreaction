@@ -92,6 +92,6 @@ export function formatTokenAmount(amount: bigint, decimals: number): string {
 
   if (remainder === 0n) return whole.toString()
 
-  const fracStr = remainder.toString().padStart(decimals, '0').replace(/0+$/, '')
+  const fracStr = remainder.toString().padStart(decimals, '0').slice(0, 4)
   return `${whole}.${fracStr}`
 }
