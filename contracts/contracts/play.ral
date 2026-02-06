@@ -22,6 +22,7 @@ Contract ChainReaction(
     event PlayerJoined(chainId: U256, player: Address, entryFee: U256, newPot: U256, position: U256)
     event ChainEnded(chainId: U256, winner: Address, payout: U256)
     event ChainTimeout(chainId: U256, player: Address)
+    event PotBoosted(caller: Address, amount: U256)
 
     enum ErrorCodes {
         ChainNotActive = 0
@@ -129,9 +130,12 @@ Contract ChainReaction(
     @using(preapprovedAssets = true, updateFields = true, checkExternalCaller = false, assetsInContract = true)
     pub fn incentive(amount: U256) -> () {
         assert!(isActive, ErrorCodes.ChainNotActive)
+        let caller = callerAddress!()
 
         transferTokenToSelf!(callerAddress!(), ALPH, amount)
         pot = pot + amount
+
+        emit PotBoosted(caller, amount)
     }
 
     // Calculate next entry price (view function)

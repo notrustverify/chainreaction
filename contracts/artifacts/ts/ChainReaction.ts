@@ -75,6 +75,10 @@ export namespace ChainReactionTypes {
     chainId: bigint;
     player: Address;
   }>;
+  export type PotBoostedEvent = ContractEvent<{
+    caller: Address;
+    amount: bigint;
+  }>;
 
   export interface CallMethodTable {
     startChain: {
@@ -185,6 +189,7 @@ class Factory extends ContractFactory<
     PlayerJoined: 1,
     ChainEnded: 2,
     ChainTimeout: 3,
+    PotBoosted: 4,
   };
   consts = {
     ErrorCodes: {
@@ -282,7 +287,7 @@ export const ChainReaction = new Factory(
   Contract.fromJson(
     ChainReactionContractJson,
     "",
-    "7ac0009d7006031dcf42b14134db105418e38e482921dc438256345eee61ac9d",
+    "9d8f1ecc8d11112d085763cbe5ca1064f0e7ee05e8d1f3bb7052418b93437db7",
     []
   )
 );
@@ -354,12 +359,26 @@ export class ChainReactionInstance extends ContractInstance {
     );
   }
 
+  subscribePotBoostedEvent(
+    options: EventSubscribeOptions<ChainReactionTypes.PotBoostedEvent>,
+    fromCount?: number
+  ): EventSubscription {
+    return subscribeContractEvent(
+      ChainReaction.contract,
+      this,
+      options,
+      "PotBoosted",
+      fromCount
+    );
+  }
+
   subscribeAllEvents(
     options: EventSubscribeOptions<
       | ChainReactionTypes.ChainStartedEvent
       | ChainReactionTypes.PlayerJoinedEvent
       | ChainReactionTypes.ChainEndedEvent
       | ChainReactionTypes.ChainTimeoutEvent
+      | ChainReactionTypes.PotBoostedEvent
     >,
     fromCount?: number
   ): EventSubscription {

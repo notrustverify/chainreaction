@@ -9,7 +9,7 @@ import { useWallet } from '@alephium/web3-react'
 import { web3 } from '@alephium/web3'
 import { useChainReaction } from '@/hooks/useChainReaction'
 import { GameConfig } from '@/services/utils'
-import { startChain, joinChain, endChain, formatAlph, GameState } from '@/services/game.service'
+import { startChain, joinChain, endChain, incentivize, formatAlph, GameState } from '@/services/game.service'
 
 type UIState = 'loading' | 'no-chain' | 'active' | 'claimable' | 'error'
 
@@ -33,6 +33,7 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
   const [durationHours, setDurationHours] = useState(2)
   const [multiplierPct, setMultiplierPct] = useState(10)
   const [baseEntryAlph, setBaseEntryAlph] = useState('0.1')
+  const [incentiveAlph, setIncentiveAlph] = useState('1')
 
   const uiState = deriveUIState(gameState, isLoading, error)
 
@@ -72,6 +73,18 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
     setTxError(undefined)
     try {
       const result = await endChain(config.contractInstance, signer)
+      setOngoingTxId(result.txId)
+    } catch (err) {
+      setTxError(err instanceof Error ? err.message : 'Transaction failed')
+    }
+  }
+
+  const handleIncentivize = async () => {
+    if (!signer) { onConnectRequest(); return }
+    setTxError(undefined)
+    try {
+      const amount = BigInt(Math.floor(parseFloat(incentiveAlph) * 1e18))
+      const result = await incentivize(config.contractInstance, signer, amount)
       setOngoingTxId(result.txId)
     } catch (err) {
       setTxError(err instanceof Error ? err.message : 'Transaction failed')
@@ -150,15 +163,45 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
       />
 
       {gameState && gameState.isActive && (
-        <GameStats
-          pot={gameState.pot}
-          entryPrice={gameState.nextEntryPrice}
-          playerCount={gameState.playerCount}
-          lastPlayer={gameState.lastPlayer}
-          chainId={gameState.chainId}
-          multiplierBps={gameState.multiplierBps}
-          currentUserAddress={account?.address}
-        />
+        <>
+          <GameStats
+            pot={gameState.pot}
+            entryPrice={gameState.nextEntryPrice}
+            playerCount={gameState.playerCount}
+            lastPlayer={gameState.lastPlayer}
+            chainId={gameState.chainId}
+            multiplierBps={gameState.multiplierBps}
+            currentUserAddress={account?.address}
+          />
+          <details className="w-full max-w-sm">
+            <summary className="text-sm text-gray-400 cursor-pointer hover:text-emerald-500 transition-colors text-center select-none">
+              Boost the pot
+            </summary>
+            <div className="mt-3 flex gap-2 items-end">
+              <div className="flex-1 flex flex-col gap-1">
+                <label htmlFor="incentive" className="text-[11px] text-gray-400 uppercase tracking-wider">
+                  Amount (ALPH)
+                </label>
+                <input
+                  id="incentive"
+                  type="number"
+                  min={0.1}
+                  step={0.1}
+                  value={incentiveAlph}
+                  onChange={(e) => setIncentiveAlph(e.target.value)}
+                  className="w-full px-3 py-2 text-center text-base rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                />
+              </div>
+              <button
+                onClick={handleIncentivize}
+                disabled={!!ongoingTxId || !incentiveAlph || parseFloat(incentiveAlph) <= 0}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          </details>
+        </>
       )}
 
       {uiState === 'no-chain' && (

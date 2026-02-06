@@ -80,6 +80,19 @@ export async function endChain(
   return { txId: result.txId }
 }
 
+export async function incentivize(
+  contract: ChainReactionInstance,
+  signer: SignerProvider,
+  amountAttoAlph: bigint
+): Promise<{ txId: string }> {
+  const result = await contract.transact.incentive({
+    signer,
+    args: { amount: amountAttoAlph },
+    attoAlphAmount: amountAttoAlph + 2n*DUST_AMOUNT,
+  })
+  return { txId: result.txId }
+}
+
 export function formatAlph(attoAlph: bigint): string {
   return prettifyAttoAlphAmount(attoAlph) ?? '0'
 }

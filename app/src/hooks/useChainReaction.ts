@@ -4,35 +4,66 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChainReactionInstance } from 'my-contracts'
 import { fetchGameState, GameState } from '@/services/game.service'
 
-const POLL_INTERVAL_MS = 4000
+const FALLBACK_POLL_MS = 15000
 
 export function useChainReaction(contract: ChainReactionInstance) {
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const mountedRef = useRef(true)
 
   const refresh = useCallback(async () => {
     try {
       const state = await fetchGameState(contract)
-      setGameState(state)
-      setError(null)
+      if (mountedRef.current) {
+        setGameState(state)
+        setError(null)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch game state')
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch game state')
+      }
     } finally {
-      setIsLoading(false)
+      if (mountedRef.current) {
+        setIsLoading(false)
+      }
     }
   }, [contract])
 
   useEffect(() => {
+    mountedRef.current = true
+
+    // Initial fetch
     refresh()
-    intervalRef.current = setInterval(refresh, POLL_INTERVAL_MS)
+
+    // Subscribe to contract events for real-time updates
+    const subscription = contract.subscribeAllEvents({
+      pollingInterval: 4000,
+      messageCallback: async (event) => {
+        if (!mountedRef.current) return
+        if (
+          event.name === 'PlayerJoined' ||
+          event.name === 'ChainStarted' ||
+          event.name === 'ChainEnded' ||
+          event.name === 'ChainTimeout'
+        ) {
+          await refresh()
+        }
+      },
+      errorCallback: async () => {
+        // Silently ignore event subscription errors
+      },
+    })
+
+    // Fallback poll for non-event changes (e.g. incentive, timer expiry)
+    const fallbackInterval = setInterval(refresh, FALLBACK_POLL_MS)
+
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
+      mountedRef.current = false
+      subscription.unsubscribe()
+      clearInterval(fallbackInterval)
     }
-  }, [refresh])
+  }, [contract, refresh])
 
   return { gameState, isLoading, error, refresh }
 }
