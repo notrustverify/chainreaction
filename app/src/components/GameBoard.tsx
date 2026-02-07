@@ -33,6 +33,7 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
   const [ongoingTxId, setOngoingTxId] = useState<string>()
   const [txError, setTxError] = useState<string>()
   const [durationHours, setDurationHours] = useState(1)
+  const [durationMinutes, setDurationMinutes] = useState(0)
   const [multiplierPct, setMultiplierPct] = useState(20)
   const [baseEntry, setBaseEntry] = useState('0.1')
   const [incentiveAmount, setIncentiveAmount] = useState('1')
@@ -87,9 +88,17 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
   const handleStartChain = async () => {
     if (!signer) { onConnectRequest(); return }
     setTxError(undefined)
+
+    // Validate duration
+    const totalMinutes = durationHours * 60 + durationMinutes
+    if (totalMinutes < 1) {
+      setTxError('Duration must be at least 1 minute')
+      return
+    }
+
     try {
       const payment = BigInt(Math.floor(parseFloat(baseEntry) * 10 ** selectedToken.decimals))
-      const durationMs = BigInt(durationHours) * 3600n * 1000n
+      const durationMs = (BigInt(durationHours) * 3600n + BigInt(durationMinutes) * 60n) * 1000n
       const multiplierBps = BigInt(multiplierPct) * 100n
       const result = await startChain(config.contractInstance, signer, payment, durationMs, multiplierBps, selectedToken.id)
       setOngoingTxId(result.txId)
@@ -315,18 +324,39 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label htmlFor="duration" className="text-[11px] text-gray-400 uppercase tracking-wider">
-                Duration (hours)
+              <label className="text-[11px] text-gray-400 uppercase tracking-wider">
+                Duration
               </label>
-              <input
-                id="duration"
-                type="number"
-                min={1}
-                max={3}
-                value={durationHours}
-                onChange={(e) => setDurationHours(Math.max(1, Math.min(3, Number(e.target.value))))}
-                className="w-full px-3 py-2 text-center text-base rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="hours" className="text-[10px] text-gray-400 text-center">
+                    Hours
+                  </label>
+                  <input
+                    id="hours"
+                    type="number"
+                    min={0}
+                    max={3}
+                    value={durationHours}
+                    onChange={(e) => setDurationHours(Math.max(0, Math.min(3, Number(e.target.value))))}
+                    className="w-full px-3 py-2 text-center text-base rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="minutes" className="text-[10px] text-gray-400 text-center">
+                    Minutes
+                  </label>
+                  <input
+                    id="minutes"
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={durationMinutes}
+                    onChange={(e) => setDurationMinutes(Math.max(0, Math.min(59, Number(e.target.value))))}
+                    className="w-full px-3 py-2 text-center text-base rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                  />
+                </div>
+              </div>
             </div>
             <div className="flex flex-col gap-1">
               <label htmlFor="multiplier" className="text-[11px] text-gray-400 uppercase tracking-wider">
