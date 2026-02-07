@@ -25,10 +25,11 @@ const deployGame: DeployFunction<Settings> = async (
       playerCount: 0n,
       pot: 0n,
       boostAmount: 0n,
-      durationDecreaseMs: 60n*1000n,
-      minDuration: 60n*1000n,
-      tokenId: ALPH_TOKEN_ID
-
+      burnBps: 0n,
+      durationDecreaseMs: 60n * 1000n,
+      minDuration: 60n * 1000n,
+      tokenId: ALPH_TOKEN_ID,
+      burnedAmount: 0n
     }
   })
   console.log('contract id: ' + result.contractInstance.contractId)

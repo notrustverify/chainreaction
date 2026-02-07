@@ -35,6 +35,7 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
   const [durationHours, setDurationHours] = useState(1)
   const [durationMinutes, setDurationMinutes] = useState(0)
   const [multiplierPct, setMultiplierPct] = useState(20)
+  const [burnPct, setBurnPct] = useState(0)
   const [baseEntry, setBaseEntry] = useState('0.1')
   const [incentiveAmount, setIncentiveAmount] = useState('1')
   const [selectedToken, setSelectedToken] = useState<TokenInfo>(ALPH_TOKEN)
@@ -100,7 +101,8 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
       const payment = BigInt(Math.floor(parseFloat(baseEntry) * 10 ** selectedToken.decimals))
       const durationMs = (BigInt(durationHours) * 3600n + BigInt(durationMinutes) * 60n) * 1000n
       const multiplierBps = BigInt(multiplierPct) * 100n
-      const result = await startChain(config.contractInstance, signer, payment, durationMs, multiplierBps, selectedToken.id)
+      const burnRate = BigInt(burnPct) * 100n
+      const result = await startChain(config.contractInstance, signer, payment, durationMs, multiplierBps, selectedToken.id, burnRate)
       setOngoingTxId(result.txId)
     } catch (err) {
       setTxError(err instanceof Error ? err.message : 'Transaction failed')
@@ -265,6 +267,8 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
             lastPlayer={gameState.lastPlayer}
             playerCount={gameState.playerCount}
             multiplierBps={gameState.multiplierBps}
+            burnedAmount={gameState.burnedAmount}
+            burnBps={gameState.burnBps}
             currentUserAddress={ongoingTxId ? undefined : account?.address}
             tokenSymbol={activeToken.symbol}
             tokenDecimals={activeToken.decimals}
@@ -376,6 +380,24 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
                 <span className="text-base font-bold text-emerald-600 min-w-[4ch] text-right">{multiplierPct}%</span>
               </div>
             </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="burn-rate" className="text-[11px] text-gray-400 uppercase tracking-wider">
+                Burn rate (%)
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="burn-rate"
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={burnPct}
+                  onChange={(e) => setBurnPct(Number(e.target.value))}
+                  className="flex-1 accent-red-500"
+                />
+                <span className="text-base font-bold text-red-600 min-w-[4ch] text-right">{burnPct}%</span>
+              </div>
+            </div>
           </div>
         </>
       )}
@@ -391,10 +413,11 @@ export const GameBoard: FC<{ config: GameConfig; onConnectRequest: () => void }>
           How to play
         </summary>
         <div className="mt-3 text-sm text-gray-500 space-y-2 p-4 bg-gray-50 rounded-xl border border-gray-100">
-          <p><span className="font-semibold text-gray-700">1. Start a chain</span> — Pick a token, set the entry price, countdown duration, and price increase. You become the first player.</p>
+          <p><span className="font-semibold text-gray-700">1. Start a chain</span> — Pick a token, set the entry price, countdown duration, price increase, and burn rate. You become the first player.</p>
           <p><span className="font-semibold text-gray-700">2. Enter the chain</span> — Each new player pays a higher entry fee (previous price + the % increase). Every play resets the countdown.</p>
           <p><span className="font-semibold text-gray-700">3. The clock tightens</span> — The countdown shrinks with each player, making the game more intense. Once it reaches 1 minute, each new play resets the timer back to 1 minute instead of shrinking further.</p>
-          <p><span className="font-semibold text-gray-700">4. Last player wins</span> — When the timer runs out, the last person who joined wins the entire pot. Anyone can trigger the payout.</p>
+          <p><span className="font-semibold text-gray-700">4. Token burning</span> — If a burn rate is set, a percentage of each entry fee is permanently burned (removed from circulation for alphtoken). The rest goes to the pot.</p>
+          <p><span className="font-semibold text-gray-700">5. Last player wins</span> — When the timer runs out, the last person who joined wins the entire pot. Anyone can trigger the payout.</p>
           <p className="text-gray-400 text-xs pt-1">You can also boost the pot at any time to make the prize more attractive without resetting the timer.</p>
         </div>
       </details>

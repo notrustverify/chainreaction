@@ -52,6 +52,8 @@ export namespace ChainReactionTypes {
     durationMs: bigint;
     multiplierBps: bigint;
     tokenId: HexString;
+    burnBps: bigint;
+    burnedAmount: bigint;
     durationDecreaseMs: bigint;
     minDuration: bigint;
   };
@@ -68,11 +70,13 @@ export namespace ChainReactionTypes {
     entryFee: bigint;
     newPot: bigint;
     position: bigint;
+    amountBurned: bigint;
   }>;
   export type ChainEndedEvent = ContractEvent<{
     chainId: bigint;
     winner: Address;
     payout: bigint;
+    totalBurned: bigint;
   }>;
   export type ChainTimeoutEvent = ContractEvent<{
     chainId: bigint;
@@ -90,6 +94,7 @@ export namespace ChainReactionTypes {
         durationGameMs: bigint;
         multiplierGameBps: bigint;
         tokenIdGame: HexString;
+        burnRate: bigint;
       }>;
       result: CallContractResult<null>;
     };
@@ -143,6 +148,7 @@ export namespace ChainReactionTypes {
         durationGameMs: bigint;
         multiplierGameBps: bigint;
         tokenIdGame: HexString;
+        burnRate: bigint;
       }>;
       result: SignExecuteScriptTxResult;
     };
@@ -204,6 +210,7 @@ class Factory extends ContractFactory<
       TooEarlyToEnd: BigInt("4"),
       GameEnded: BigInt("5"),
       DurationToLow: BigInt("6"),
+      BurnRateTooHigh: BigInt("7"),
     },
   };
 
@@ -220,6 +227,7 @@ class Factory extends ContractFactory<
           durationGameMs: bigint;
           multiplierGameBps: bigint;
           tokenIdGame: HexString;
+          burnRate: bigint;
         }
       >
     ): Promise<TestContractResultWithoutMaps<null>> => {
@@ -298,7 +306,7 @@ export const ChainReaction = new Factory(
   Contract.fromJson(
     ChainReactionContractJson,
     "",
-    "3bb8099fef2d4d3793db878df606115638ea1c5dd7af5727245533874142bca9",
+    "5a136385437d46408c62daca51a9521ab8674e8c2702015a7df86f798f5e757e",
     []
   )
 );

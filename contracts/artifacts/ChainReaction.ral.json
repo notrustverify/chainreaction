@@ -1,8 +1,8 @@
 {
   "version": "v4.3.0",
   "name": "ChainReaction",
-  "bytecode": "0f07407440ea411e4135414f4175419501010406004040d3927a57cfa007190f7b1601ce003413067b56170416000c330e7bb417051605a00c1600ac1600a1081603a10c1601a10a1602a10ba0000d2aa100a008a1011605a1021604a00a2aa1091604a103a00416002aa1040da10603a10705a000a0035f06a000a0021600a004a0067301010105004040d34ad877d7a0070c7bb417015617021602a00931117b0006170316001603340e7b1601a00c1600aca0060d2aa1061603a1011601a1021602a103a00a17041604ce01324c03ce0117044a06a00aa006ce002c2b1704160216042aa109a00416002aa10406a000a0021600a004a0067301020001001bd3b02ce78c0003107ba005a0042a1700a002a00c1600ab07a000a00216006004a1070ca1040ca1050ca1060ca10101000000010ad327625287a007194c02040256a0093402010000000709d3d50f1f95a000a001a002a003a004a007a00602010101020012d348021c29a0070c7bb417011601a00c1600aca00516002aa10509160116005f01000000010ed3b1b69428a007194c02a00802a001a001a00b2c1367102d2a02",
-  "codeHash": "3bb8099fef2d4d3793db878df606115638ea1c5dd7af5727245533874142bca9",
+  "bytecode": "110740854122415b4172418c41b241d20101050700404ad338e7beeda007190f7b1601ce003413067b16041367103213077b56170516000c330e7bb417061606a00c1600ac1600a1081603a10c1601a10a1602a10ba0000d2aa100a008a1011606a1021605a00a2aa1091605a103a00416002aa1040da1061604a10d0ca10e03a10705a000a0035f06a000a0021600a004a0060c7401010107004057d34ad877d7a0070c7bb417015617021602a00931117b0006170316001603340e7b1601a00c1603aca0060d2aa1061603a1011601a1021602a1031603a00d2c1367102d1704a00e16042aa10e160316042b1705a00ccd424c04b2a00c1604bda00a17061606ce01324c03ce0117064a06a00aa006ce002c2b1706160216062aa109a00416052aa10406a000a0021605a004a00616047401020001001ed3b02ce78c0003107ba005a0042a1700a002a00c1600ab07a000a0021600a00e6104a1070ca1040ca1050ca1060ca1010ca10e01000000010ad327625287a007194c02040256a0093402010000000709d3d50f1f95a000a001a002a003a004a007a00602010101020012d348021c29a0070c7bb417011601a00c1600aca00516002aa10509160116005f01000000010ed3b1b69428a007194c02a00802a001a001a00b2c1367102d2a02",
+  "codeHash": "5a136385437d46408c62daca51a9521ab8674e8c2702015a7df86f798f5e757e",
   "fieldsSig": {
     "names": [
       "chainId",
@@ -18,6 +18,8 @@
       "durationMs",
       "multiplierBps",
       "tokenId",
+      "burnBps",
+      "burnedAmount",
       "durationDecreaseMs",
       "minDuration"
     ],
@@ -36,9 +38,13 @@
       "U256",
       "ByteVec",
       "U256",
+      "U256",
+      "U256",
       "U256"
     ],
     "isMutable": [
+      true,
+      true,
       true,
       true,
       true,
@@ -75,11 +81,13 @@
         "player",
         "entryFee",
         "newPot",
-        "position"
+        "position",
+        "amountBurned"
       ],
       "fieldTypes": [
         "U256",
         "Address",
+        "U256",
         "U256",
         "U256",
         "U256"
@@ -90,11 +98,13 @@
       "fieldNames": [
         "chainId",
         "winner",
-        "payout"
+        "payout",
+        "totalBurned"
       ],
       "fieldTypes": [
         "U256",
         "Address",
+        "U256",
         "U256"
       ]
     },
@@ -128,15 +138,18 @@
         "payment",
         "durationGameMs",
         "multiplierGameBps",
-        "tokenIdGame"
+        "tokenIdGame",
+        "burnRate"
       ],
       "paramTypes": [
         "U256",
         "U256",
         "U256",
-        "ByteVec"
+        "ByteVec",
+        "U256"
       ],
       "paramIsMutable": [
+        false,
         false,
         false,
         false,
@@ -256,6 +269,13 @@
           "value": {
             "type": "U256",
             "value": "6"
+          }
+        },
+        {
+          "name": "BurnRateTooHigh",
+          "value": {
+            "type": "U256",
+            "value": "7"
           }
         }
       ]

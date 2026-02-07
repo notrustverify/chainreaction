@@ -36,32 +36,63 @@ export function useChainReaction(contract: ChainReactionInstance) {
     // Initial fetch
     refresh()
 
-    // Subscribe to contract events for real-time updates
-    const subscription = contract.subscribeAllEvents({
-      pollingInterval: 4000,
-      messageCallback: async (event) => {
+    // Get current event count and subscribe from there (optimization to skip historical events)
+    let subscription: any
+    contract.getContractEventsCurrentCount()
+      .then((currentCount: number) => {
         if (!mountedRef.current) return
-        if (
-          event.name === 'PlayerJoined' ||
-          event.name === 'ChainStarted' ||
-          event.name === 'ChainEnded' ||
-          event.name === 'ChainTimeout' ||
-          event.name === 'PotBoosted'
-        ) {
-          await refresh()
-        }
-      },
-      errorCallback: async () => {
-        // Silently ignore event subscription errors
-      },
-    })
+
+        // Subscribe to contract events for real-time updates, starting from current count
+        subscription = contract.subscribeAllEvents({
+          pollingInterval: 4000,
+          messageCallback: async (event) => {
+            if (!mountedRef.current) return
+            if (
+              event.name === 'PlayerJoined' ||
+              event.name === 'ChainStarted' ||
+              event.name === 'ChainEnded' ||
+              event.name === 'ChainTimeout' ||
+              event.name === 'PotBoosted'
+            ) {
+              await refresh()
+            }
+          },
+          errorCallback: async () => {
+            // Silently ignore event subscription errors
+          },
+        }, currentCount)
+      })
+      .catch(() => {
+        // Fallback: subscribe from beginning if getting event count fails
+        if (!mountedRef.current) return
+        subscription = contract.subscribeAllEvents({
+          pollingInterval: 4000,
+          messageCallback: async (event) => {
+            if (!mountedRef.current) return
+            if (
+              event.name === 'PlayerJoined' ||
+              event.name === 'ChainStarted' ||
+              event.name === 'ChainEnded' ||
+              event.name === 'ChainTimeout' ||
+              event.name === 'PotBoosted'
+            ) {
+              await refresh()
+            }
+          },
+          errorCallback: async () => {
+            // Silently ignore event subscription errors
+          },
+        })
+      })
 
     // Fallback poll for non-event changes (e.g. incentive, timer expiry)
     const fallbackInterval = setInterval(refresh, FALLBACK_POLL_MS)
 
     return () => {
       mountedRef.current = false
-      subscription.unsubscribe()
+      if (subscription) {
+        subscription.unsubscribe()
+      }
       clearInterval(fallbackInterval)
     }
   }, [contract, refresh])

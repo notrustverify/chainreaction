@@ -19,6 +19,8 @@ export interface GameState {
   durationDecreaseMs: bigint
   minDuration: bigint
   tokenId: string
+  burnBps: bigint
+  burnedAmount: bigint
 }
 
 function isAlph(tokenId: string): boolean {
@@ -60,6 +62,8 @@ export async function fetchGameState(contract: ChainReactionInstance): Promise<G
     durationDecreaseMs: fields.durationDecreaseMs,
     minDuration: fields.minDuration,
     tokenId: fields.tokenId,
+    burnBps: fields.burnBps,
+    burnedAmount: fields.burnedAmount,
   }
 }
 
@@ -69,11 +73,12 @@ export async function startChain(
   payment: bigint,
   durationMs: bigint,
   multiplierBps: bigint,
-  tokenId: string
+  tokenId: string,
+  burnRate: bigint
 ): Promise<{ txId: string }> {
   const result = await contract.transact.startChain({
     signer,
-    args: { payment, durationGameMs: durationMs, multiplierGameBps: multiplierBps, tokenIdGame: tokenId },
+    args: { payment, durationGameMs: durationMs, multiplierGameBps: multiplierBps, tokenIdGame: tokenId, burnRate },
     ...buildTxParams(tokenId, payment),
   })
   return { txId: result.txId }

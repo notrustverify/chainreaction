@@ -16,14 +16,16 @@ Contract ChainReaction(
     mut durationMs: U256,
     mut multiplierBps: U256,        // Multiplier in basis points (1000 = 10%)
     mut tokenId: ByteVec,
+    mut burnBps: U256,
+    mut burnedAmount: U256,
     durationDecreaseMs: U256,
     minDuration: U256
 ) {
 
     // Events
     event ChainStarted(chainId: U256, startBlock: U256)
-    event PlayerJoined(chainId: U256, player: Address, entryFee: U256, newPot: U256, position: U256)
-    event ChainEnded(chainId: U256, winner: Address, payout: U256)
+    event PlayerJoined(chainId: U256, player: Address, entryFee: U256, newPot: U256, position: U256, amountBurned: U256)
+    event ChainEnded(chainId: U256, winner: Address, payout: U256, totalBurned: U256)
     event ChainTimeout(chainId: U256, player: Address)
     event PotBoosted(caller: Address, amount: U256)
 
@@ -34,14 +36,16 @@ Contract ChainReaction(
         TooEarlyToEnd = 4
         GameEnded = 5
         DurationToLow = 6
+        BurnRateTooHigh = 7
     }
 
     // Start a new chain
     @using(preapprovedAssets = true, updateFields = true, checkExternalCaller = false, assetsInContract = true)
-    pub fn startChain(payment: U256, durationGameMs: U256, multiplierGameBps: U256, tokenIdGame: ByteVec) -> () {
+    pub fn startChain(payment: U256, durationGameMs: U256, multiplierGameBps: U256, tokenIdGame: ByteVec, burnRate: U256) -> () {
         // Check no active chain
         assert!(!isActive, ErrorCodes.ChainAlreadyActive)
         assert!(durationGameMs >= durationDecreaseMs, ErrorCodes.DurationToLow)
+        assert!(burnRate <= 10000, ErrorCodes.BurnRateTooHigh)
 
         let timestamp = blockTimeStamp!()
 
@@ -50,6 +54,7 @@ Contract ChainReaction(
         let caller = callerAddress!()
 
         transferTokenToSelf!(caller, tokenId, payment)
+
 
         // Initialize new chain
         baseEntry = payment
@@ -63,10 +68,12 @@ Contract ChainReaction(
         lastEntryTimestamp = timestamp
         pot = pot + payment
         playerCount = 1
+        burnBps = burnRate
+        burnedAmount = 0
         isActive = true
 
         emit ChainStarted(chainId, lastEntryTimestamp)
-        emit PlayerJoined(chainId, lastPlayer, payment, pot, playerCount)
+        emit PlayerJoined(chainId, lastPlayer, payment, pot, playerCount, 0)
     }
 
     // Join existing chain
@@ -85,7 +92,7 @@ Contract ChainReaction(
         let requiredEntry = getNextEntryPrice()
         assert!(payment >= requiredEntry, ErrorCodes.InsufficientPayment)
 
-        transferTokenToSelf!(caller, tokenId, payment)
+        transferTokenToSelf!(caller, tokenId, requiredEntry)
 
         // Update state
         playerCount = playerCount + 1
@@ -93,8 +100,14 @@ Contract ChainReaction(
         lastPlayer = caller
         lastEntryTimestamp = timestamp
 
-        let mut totalDurationDecrease = durationMs
+        let amountToBurn = requiredEntry * burnBps / 10000
+        burnedAmount = burnedAmount + amountToBurn
+        let totalPayment = requiredEntry - amountToBurn
+        if tokenId != ALPH {
+            burnToken!(selfAddress!(), tokenId, amountToBurn)
+        }
 
+        let mut totalDurationDecrease = durationMs
         // set the smallest duration timer to 1m
         if totalDurationDecrease <= minDuration {
             totalDurationDecrease = minDuration
@@ -103,9 +116,9 @@ Contract ChainReaction(
         }
 
         endTimestamp = timestamp + totalDurationDecrease
-        pot = pot + payment
+        pot = pot + totalPayment
 
-        emit PlayerJoined(chainId, lastPlayer, payment, pot, playerCount)
+        emit PlayerJoined(chainId, lastPlayer, totalPayment, pot, playerCount, amountToBurn)
     }
 
     // End chain and pay winner (callable by anyone after timeout)
@@ -119,7 +132,7 @@ Contract ChainReaction(
         // Pay winner
         transferTokenFromSelf!(lastPlayer, tokenId, totalAmount)
 
-        emit ChainEnded(chainId, lastPlayer, totalAmount)
+        emit ChainEnded(chainId, lastPlayer, totalAmount, burnedAmount)
 
         // Reset for next chain
         isActive = false
@@ -127,6 +140,7 @@ Contract ChainReaction(
         boostAmount = 0
         playerCount = 0
         currentEntry = 0
+        burnedAmount = 0
     }
 
     // Check if chain can be ended (view function)
