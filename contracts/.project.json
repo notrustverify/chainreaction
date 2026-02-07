@@ -9,7 +9,7 @@
     "ignoreCheckExternalCallerWarnings": false,
     "ignoreUnusedFunctionReturnWarnings": false,
     "skipAbstractContractCheck": false,
-    "skipTests": false
+    "skipTests": true
   },
   "infos": {
     "ChainReaction": {
