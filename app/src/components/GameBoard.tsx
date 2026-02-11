@@ -30,8 +30,9 @@ function deriveUIState(
 export const GameBoard: FC<{
   contractInstance: GameContractInstance
   onConnectRequest: () => void
+  onBrowseGames?: () => void
   tokenIdsFromQuery?: string[] | null
-}> = ({ contractInstance, onConnectRequest, tokenIdsFromQuery }) => {
+}> = ({ contractInstance, onConnectRequest,  onBrowseGames, tokenIdsFromQuery }) => {
   const { signer, account } = useWallet()
   const { gameState, isLoading, error, refresh, players } = useChainReaction(contractInstance)
   const [ongoingTxId, setOngoingTxId] = useState<string>()
@@ -357,6 +358,15 @@ export const GameBoard: FC<{
             tokenSymbol={activeToken.symbol}
             tokenDecimals={activeToken.decimals}
           />
+          {onBrowseGames && (
+            <button
+              onClick={onBrowseGames}
+              className="px-5 py-2.5 text-sm font-medium rounded-xl border border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-600 transition-colors flex items-center gap-2"
+            >
+              Browse all games
+              <span className="text-lg leading-none">&darr;</span>
+            </button>
+          )}
           <details className="w-full max-w-sm">
             <summary className="text-sm text-muted cursor-pointer hover:text-primary transition-colors text-center select-none">
               Price curve

@@ -1,13 +1,17 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Leaderboard } from '@/components/Leaderboard'
 import { useLeaderboard } from '@/hooks/useLeaderboard'
 import { useWallet } from '@alephium/web3-react'
 import { gameConfig } from '@/services/utils'
 
 export default function LeaderboardPage() {
-  const { leaderboard, isLoading, error } = useLeaderboard(gameConfig.factoryInstance)
+  const v1Instance = useMemo(
+    () => gameConfig.v1Address ? ChainReactionV1.at(gameConfig.v1Address) : null,
+    []
+  )
+  const { leaderboard, isLoading, error } = useLeaderboard(v1Instance!)
   const { account } = useWallet()
 
   return (

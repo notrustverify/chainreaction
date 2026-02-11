@@ -80,7 +80,7 @@ export const GameList: FC<{ games: GameListItem[]; isLoading: boolean }> = ({ ga
             <Link
               key={game.contractId}
               href={appendPreservedParamsToHref(`/game?address=${game.address}`, preserved)}
-              className="group flex flex-col p-4 rounded-2xl border border-card-border bg-card-bg hover:border-card-hover-border hover:shadow-sm transition-all"
+              className="group flex flex-col p-4 rounded-2xl border border-card-border bg-card-bg hover:border-card-hover-border hover:shadow-sm transition-all cursor-pointer"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
