@@ -16,6 +16,37 @@ import { PlayerEntry } from '@/hooks/useChainReaction'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler)
 
+/** Read theme color from CSS variable (client-only). */
+function getThemeColor(varName: string, fallback: string): string {
+  if (typeof document === 'undefined') return fallback
+  const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim()
+  return value || fallback
+}
+
+/** Return rgba string with new alpha. Handles rgb(...) and rgba(...). */
+function withAlpha(cssColor: string, alpha: number): string {
+  const match = cssColor.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*[\d.]+)?\s*\)/)
+  if (match) return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${alpha})`
+  const hex = cssColor.match(/^#([0-9a-fA-F]{6})$/)
+  if (hex) {
+    const r = parseInt(hex[1].slice(0, 2), 16)
+    const g = parseInt(hex[1].slice(2, 4), 16)
+    const b = parseInt(hex[1].slice(4, 6), 16)
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
+  return cssColor
+}
+
+function getChartThemeColors() {
+  return {
+    past: getThemeColor('--color-chart-past', '#9ca3af'),
+    future: getThemeColor('--color-chart-future', '#93c5fd'),
+    current: getThemeColor('--color-chart-current', '#10b981'),
+    milestone: getThemeColor('--color-chart-milestone', '#3b82f6'),
+    tick: getThemeColor('--color-chart-tick', '#9ca3af'),
+  }
+}
+
 interface PriceChartProps {
   baseEntry: bigint
   multiplierBps: bigint
@@ -42,6 +73,7 @@ export const PriceChart: FC<PriceChartProps> = ({ baseEntry, multiplierBps, play
   const startIdxRef = useRef(0)
 
   const chartData = useMemo(() => {
+    const colors = getChartThemeColors()
     const pc = Number(playerCount)
 
     if (preview) {
@@ -61,10 +93,10 @@ export const PriceChart: FC<PriceChartProps> = ({ baseEntry, multiplierBps, play
           {
             label: 'Price',
             data: values,
-            borderColor: '#93c5fd',
+            borderColor: colors.future,
             borderDash: [4, 4],
-            backgroundColor: 'rgba(147, 197, 253, 0.08)',
-            pointBackgroundColor: allPrices.map((_, i) => PREVIEW_MILESTONES.has(i + 1) ? '#3b82f6' : 'transparent'),
+            backgroundColor: withAlpha(colors.future, 0.08),
+            pointBackgroundColor: allPrices.map((_, i) => PREVIEW_MILESTONES.has(i + 1) ? colors.milestone : 'transparent'),
             pointRadius: allPrices.map((_, i) => PREVIEW_MILESTONES.has(i + 1) ? 4 : 0),
             pointHoverRadius: 4,
             borderWidth: 2,
@@ -97,9 +129,9 @@ export const PriceChart: FC<PriceChartProps> = ({ baseEntry, multiplierBps, play
     const futureData = slice.map((p, i) => i >= nextLocalIdx ? Number(p) / 10 ** tokenDecimals : null)
 
     const pointColors = slice.map((_, i) => {
-      if (i === nextLocalIdx) return '#10b981'
-      if (i < nextLocalIdx) return '#9ca3af'
-      return '#93c5fd'
+      if (i === nextLocalIdx) return colors.current
+      if (i < nextLocalIdx) return colors.past
+      return colors.future
     })
 
     const pointRadii = slice.map((_, i) => i === nextLocalIdx ? 6 : 3)
@@ -110,8 +142,8 @@ export const PriceChart: FC<PriceChartProps> = ({ baseEntry, multiplierBps, play
         {
           label: 'Past',
           data: pastData,
-          borderColor: '#9ca3af',
-          backgroundColor: 'rgba(156, 163, 175, 0.1)',
+          borderColor: colors.past,
+          backgroundColor: withAlpha(colors.past, 0.1),
           pointBackgroundColor: pointColors,
           pointRadius: pointRadii,
           pointHoverRadius: 6,
@@ -123,9 +155,9 @@ export const PriceChart: FC<PriceChartProps> = ({ baseEntry, multiplierBps, play
         {
           label: 'Future',
           data: futureData,
-          borderColor: '#93c5fd',
+          borderColor: colors.future,
           borderDash: [4, 4],
-          backgroundColor: 'rgba(147, 197, 253, 0.08)',
+          backgroundColor: withAlpha(colors.future, 0.08),
           pointBackgroundColor: pointColors,
           pointRadius: pointRadii,
           pointHoverRadius: 6,
@@ -139,6 +171,7 @@ export const PriceChart: FC<PriceChartProps> = ({ baseEntry, multiplierBps, play
   }, [baseEntry, multiplierBps, playerCount, tokenDecimals, preview, players])
 
   const options = useMemo(() => {
+    const colors = getChartThemeColors()
     const formatTick = (value: number | string) => {
       const num = typeof value === 'string' ? parseFloat(value) : value
       if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`
@@ -180,17 +213,17 @@ export const PriceChart: FC<PriceChartProps> = ({ baseEntry, multiplierBps, play
           grid: { display: false },
           ticks: {
             font: { size: 9 },
-            color: '#9ca3af',
+            color: colors.tick,
             maxRotation: preview ? 0 : 45,
             autoSkip: !preview,
             maxTicksLimit: preview ? undefined : 15,
           },
         },
         y: {
-          grid: { color: 'rgba(0,0,0,0.04)' },
+          grid: { color: withAlpha(colors.tick, 0.12) },
           ticks: {
             font: { size: 10 },
-            color: '#9ca3af',
+            color: colors.tick,
             callback: formatTick,
           },
         },

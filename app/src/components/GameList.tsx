@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { GameListItem } from '@/hooks/useGameList'
 import { formatTokenAmount } from '@/services/tokenList'
 import { shortenAddress } from '@/services/game.service'
+import { useThemeForcedParam, useTokensParam, appendPreservedParamsToHref } from '@/theme/useThemeForcedParam'
 
 const PAGE_SIZE = 16
 
@@ -41,6 +42,9 @@ function getStatus(game: GameListItem): { label: string; color: string } {
 }
 
 export const GameList: FC<{ games: GameListItem[]; isLoading: boolean }> = ({ games, isLoading }) => {
+  const themeParam = useThemeForcedParam()
+  const tokensParam = useTokensParam()
+  const preserved = { theme: themeParam, tokens: tokensParam }
   const [page, setPage] = useState(0)
 
   if (isLoading) {
@@ -75,7 +79,7 @@ export const GameList: FC<{ games: GameListItem[]; isLoading: boolean }> = ({ ga
           return (
             <Link
               key={game.contractId}
-              href={`/game?address=${game.address}`}
+              href={appendPreservedParamsToHref(`/game?address=${game.address}`, preserved)}
               className="group flex flex-col p-4 rounded-2xl border border-card-border bg-card-bg hover:border-card-hover-border hover:shadow-sm transition-all"
             >
               <div className="flex items-center justify-between mb-2">

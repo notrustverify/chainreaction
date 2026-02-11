@@ -27,7 +27,11 @@ function deriveUIState(
   return 'active'
 }
 
-export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRequest: () => void }> = ({ contractInstance, onConnectRequest }) => {
+export const GameBoard: FC<{
+  contractInstance: GameContractInstance
+  onConnectRequest: () => void
+  tokenIdsFromQuery?: string[] | null
+}> = ({ contractInstance, onConnectRequest, tokenIdsFromQuery }) => {
   const { signer, account } = useWallet()
   const { gameState, isLoading, error, refresh, players } = useChainReaction(contractInstance)
   const [ongoingTxId, setOngoingTxId] = useState<string>()
@@ -40,6 +44,7 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
   const [incentiveAmount, setIncentiveAmount] = useState('1')
   const [selectedToken, setSelectedToken] = useState<TokenInfo>(ALPH_TOKEN)
   const [tokenList, setTokenList] = useState<TokenInfo[]>([ALPH_TOKEN])
+  const [tokenListFromQuery, setTokenListFromQuery] = useState(false)
   const [userBalance, setUserBalance] = useState<bigint | null>(null)
   const [copiedShare, setCopiedShare] = useState<'embed' | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(false)
@@ -49,12 +54,37 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
   const notified1minRef = useRef(false)
 
   useEffect(() => {
+    if (!tokenIdsFromQuery || tokenIdsFromQuery.length === 0) {
+      setTokenListFromQuery(false)
+      return
+    }
+    let cancelled = false
+    Promise.all(tokenIdsFromQuery.map(id => resolveTokenInfo(id)))
+      .then(resolved => {
+        if (cancelled) return
+        const list = resolved.filter((t, i, a) => a.findIndex(x => x.id === t.id) === i)
+        setTokenList(list)
+        setTokenListFromQuery(true)
+        if (list.length === 1) setSelectedToken(list[0])
+      })
+      .catch(() => {
+        if (!cancelled) setTokenListFromQuery(false)
+      })
+    return () => { cancelled = true }
+  }, [tokenIdsFromQuery?.join(',')])
+
+  useEffect(() => {
+    if (tokenIdsFromQuery != null && tokenIdsFromQuery.length > 0) return
     if (account?.address) {
-      fetchWalletTokens(account.address).then(setTokenList)
+      fetchWalletTokens(account.address).then(tokens => {
+        setTokenList(tokens)
+        setTokenListFromQuery(false)
+      })
     } else {
       setTokenList([ALPH_TOKEN])
+      setTokenListFromQuery(false)
     }
-  }, [account?.address])
+  }, [account?.address, tokenIdsFromQuery])
 
   useEffect(() => {
     if (account?.address && gameState?.tokenId && gameState.isActive) {
@@ -382,6 +412,7 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
               tokens={tokenList}
               selected={selectedToken}
               onChange={setSelectedToken}
+              disabled={tokenListFromQuery && tokenList.length === 1}
             />
             <div className="flex flex-col gap-1">
               <label htmlFor="base-entry" className="text-[11px] text-label uppercase tracking-wider">
@@ -519,12 +550,7 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
         </button>
       </div>
 
-      <p className="text-xs text-footer-text mt-2">
-        Built by{' '}
-        <a href="https://notrustverify.ch" target="_blank" rel="noopener noreferrer" className="text-footer-link hover:text-footer-link-hover underline">
-          No Trust Verify
-        </a>
-      </p>
+    
     </div>
   )
 }

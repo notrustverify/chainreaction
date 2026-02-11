@@ -7,9 +7,10 @@ interface TokenSelectorProps {
   tokens: TokenInfo[]
   selected: TokenInfo
   onChange: (token: TokenInfo) => void
+  disabled?: boolean
 }
 
-export const TokenSelector: FC<TokenSelectorProps> = ({ tokens, selected, onChange }) => {
+export const TokenSelector: FC<TokenSelectorProps> = ({ tokens, selected, onChange, disabled }) => {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
@@ -21,6 +22,10 @@ export const TokenSelector: FC<TokenSelectorProps> = ({ tokens, selected, onChan
         t.name.toLowerCase().includes(search.toLowerCase())
       )
     : tokens
+
+  useEffect(() => {
+    if (disabled && open) setOpen(false)
+  }, [disabled, open])
 
   useEffect(() => {
     if (open) {
@@ -45,15 +50,18 @@ export const TokenSelector: FC<TokenSelectorProps> = ({ tokens, selected, onChan
       <div className="relative">
         <button
           type="button"
-          onClick={() => setOpen(!open)}
-          className="w-full flex items-center gap-2 pl-3 pr-3 py-2 text-base rounded-lg border border-input-border bg-input-bg text-input-fg focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 focus:border-input-focus-ring text-left"
+          onClick={() => !disabled && setOpen(!open)}
+          disabled={disabled}
+          className={`w-full flex items-center gap-2 pl-3 pr-3 py-2 text-base rounded-lg border border-input-border bg-input-bg text-input-fg focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 focus:border-input-focus-ring text-left ${disabled ? 'cursor-default opacity-90' : ''}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={selected.logoURI} alt={selected.symbol} className="w-5 h-5 rounded-full flex-shrink-0" />
           <span className="flex-1 truncate">{selected.symbol} — {selected.name}</span>
-          <svg className={`w-4 h-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          {!disabled && (
+            <svg className={`w-4 h-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          )}
         </button>
 
         {open && (

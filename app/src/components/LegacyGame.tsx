@@ -4,8 +4,12 @@ import React, { FC, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { fetchV1GameState, GameState, shortenAddress } from '@/services/game.service'
 import { formatTokenAmount } from '@/services/tokenList'
+import { useThemeForcedParam, useTokensParam, appendPreservedParamsToHref } from '@/theme/useThemeForcedParam'
 
 export const LegacyGame: FC<{ address: string }> = ({ address }) => {
+  const themeParam = useThemeForcedParam()
+  const tokensParam = useTokensParam()
+  const preserved = { theme: themeParam, tokens: tokensParam }
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const mountedRef = useRef(true)
@@ -39,7 +43,7 @@ export const LegacyGame: FC<{ address: string }> = ({ address }) => {
 
   return (
     <Link
-      href={`/game?address=${address}`}
+      href={appendPreservedParamsToHref(`/game?address=${address}`, preserved)}
       className="group w-full p-4 rounded-2xl border border-status-legacy-border bg-status-legacy-bg hover:border-status-legacy-border hover:shadow-sm transition-all"
     >
       <div className="flex items-center justify-between mb-2">

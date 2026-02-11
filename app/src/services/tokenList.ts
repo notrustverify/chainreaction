@@ -10,7 +10,7 @@ export interface TokenInfo {
 
 const TOKEN_LIST_URLS: Record<string, string> = {
   mainnet: 'https://raw.githubusercontent.com/alephium/token-list/master/tokens/mainnet.json',
-  testnet: 'https://raw.githubusercontent.com/alephium/token-list/master/tokens/testnet.json',
+  testnet: 'https://raw.githubusercontent.com/alephium/token-list/master/tokens/mainnet.json',
 }
 
 let cachedTokens: TokenInfo[] | null = null

@@ -1,6 +1,8 @@
 /* Light theme – only --color-* with literal rgba() */
 :root[data-theme='light'] {
   --bg-image: none;
+  --bg-image-big-button: none;
+  --bg-image-main: none;
   --color-bg: rgba(255, 255, 255, 1);
   --color-fg: rgba(17, 24, 39, 1);
   --color-surface: rgba(249, 250, 251, 1);
@@ -76,4 +78,10 @@
   --color-footer-text: rgba(107, 114, 128, 1);
   --color-footer-link: rgba(16, 185, 129, 1);
   --color-footer-link-hover: rgba(5, 150, 105, 1);
+  /* Price chart */
+  --color-chart-past: rgba(156, 163, 175, 1);
+  --color-chart-future: rgba(147, 197, 253, 1);
+  --color-chart-current: rgba(16, 185, 129, 1);
+  --color-chart-milestone: rgba(59, 130, 246, 1);
+  --color-chart-tick: rgba(156, 163, 175, 1);
 }

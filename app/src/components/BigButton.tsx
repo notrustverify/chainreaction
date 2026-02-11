@@ -43,6 +43,7 @@ export const BigButton: FC<BigButtonProps> = ({ label, onClick, disabled, varian
           flex items-center justify-center text-center leading-tight
           active:not-disabled:scale-95 hover:not-disabled:scale-105
           disabled:opacity-50 disabled:cursor-not-allowed
+          [background-image:var(--bg-image-big-button)] bg-cover bg-center                    
           ${variantStyles[variant]}
         `}
         onClick={onClick}

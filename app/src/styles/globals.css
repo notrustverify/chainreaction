@@ -4,6 +4,8 @@
 /* Default :root (light) – only --color-* with literal rgba() for Tailwind and body/stat-card */
 :root {
   --bg-image: none;
+  --bg-image-big-button: none;
+  --bg-image-main: none;
   --color-bg: rgba(255, 255, 255, 1);
   --color-fg: rgba(17, 24, 39, 1);
   --color-surface: rgba(249, 250, 251, 1);
@@ -79,6 +81,12 @@
   --color-footer-text: rgba(107, 114, 128, 1);
   --color-footer-link: rgba(16, 185, 129, 1);
   --color-footer-link-hover: rgba(5, 150, 105, 1);
+  /* Price chart */
+  --color-chart-past: rgba(156, 163, 175, 1);
+  --color-chart-future: rgba(147, 197, 253, 1);
+  --color-chart-current: rgba(16, 185, 129, 1);
+  --color-chart-milestone: rgba(59, 130, 246, 1);
+  --color-chart-tick: rgba(156, 163, 175, 1);
 }
 
 /*
@@ -170,6 +178,12 @@
   --color-footer-text: var(--color-footer-text);
   --color-footer-link: var(--color-footer-link);
   --color-footer-link-hover: var(--color-footer-link-hover);
+  /* Chart */
+  --color-chart-past: var(--color-chart-past);
+  --color-chart-future: var(--color-chart-future);
+  --color-chart-current: var(--color-chart-current);
+  --color-chart-milestone: var(--color-chart-milestone);
+  --color-chart-tick: var(--color-chart-tick);
 }
 
 /* Apply theme to body and main wrapper so theme shifter has visible effect */
@@ -178,6 +192,13 @@ body,
   background-color: var(--color-bg);
   background-image: var(--bg-image);
   color: var(--color-fg);
+}
+
+main {
+  background-image: var(--bg-image-main);
+  background-position: top center;
+  background-size: contain;
+  background-repeat: no-repeat;
 }
 
 /* Stat card gradient (GameStats) – uses theme color vars */

@@ -5,6 +5,7 @@ import { useWallet } from '@alephium/web3-react'
 import { web3, addressFromContractId } from '@alephium/web3'
 import { FactoryChainReactionInstance } from 'my-contracts'
 import { createNewGame } from '@/services/factory.service'
+import { useThemeForcedParam, useTokensParam, appendPreservedParamsToHref } from '@/theme/useThemeForcedParam'
 
 type Step = 'idle' | 'signing' | 'confirming' | 'done'
 
@@ -14,6 +15,9 @@ export const CreateGame: FC<{
   onCreated?: () => void
 }> = ({ factory, onConnectRequest, onCreated }) => {
   const { signer } = useWallet()
+  const themeParam = useThemeForcedParam()
+  const tokensParam = useTokensParam()
+  const preserved = { theme: themeParam, tokens: tokensParam }
   const [decreaseSeconds, setDecreaseSeconds] = useState(60)
   const [minDurationSeconds, setMinDurationSeconds] = useState(60)
   const [isOpen, setIsOpen] = useState(false)
@@ -177,7 +181,7 @@ export const CreateGame: FC<{
           </div>
 
           <a
-            href={`/game?address=${gameAddress}`}
+            href={appendPreservedParamsToHref(`/game?address=${gameAddress}`, preserved)}
             className="w-full px-4 py-2.5 text-sm font-medium rounded-lg bg-btn-secondary-bg text-btn-secondary-fg hover:bg-btn-secondary-hover transition-colors text-center"
           >
             Go to game &rarr;

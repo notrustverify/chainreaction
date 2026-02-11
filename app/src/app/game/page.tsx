@@ -7,9 +7,17 @@ import { GameBoard } from '@/components/GameBoard'
 import { NavBar } from '@/components/NavBar'
 import { gameConfig } from '@/services/utils' // ensure node provider is set
 
+function parseTokenIdsFromQuery(searchParams: URLSearchParams): string[] | null {
+  const raw = searchParams.get('tokens')
+  if (!raw || typeof raw !== 'string') return null
+  const ids = raw.split(',').map(s => s.trim()).filter(Boolean)
+  return ids.length > 0 ? ids : null
+}
+
 function GameContent() {
   const searchParams = useSearchParams()
   const address = searchParams.get('address')
+  const tokenIdsFromQuery = useMemo(() => parseTokenIdsFromQuery(searchParams), [searchParams])
   const connectRef = useRef<HTMLDivElement>(null)
 
   const openConnect = useCallback(() => {
@@ -19,12 +27,9 @@ function GameContent() {
 
   if (!address) {
     return (
-      <div className="min-h-screen flex flex-col items-center bg-bg">
-        <NavBar ref={connectRef} />
         <main className="flex-1 flex flex-col items-center justify-center w-full">
           <p className="text-muted">No game address specified.</p>
         </main>
-      </div>
     )
   }
 
@@ -36,7 +41,11 @@ function GameContent() {
 
   return (
       <main className="flex-1 flex flex-col items-center justify-center w-full">
-        <GameBoard contractInstance={contractInstance} onConnectRequest={openConnect} />
+        <GameBoard
+          contractInstance={contractInstance}
+          onConnectRequest={openConnect}
+          tokenIdsFromQuery={tokenIdsFromQuery}
+        />
       </main>    
   )
 }
