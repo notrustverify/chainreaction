@@ -23,13 +23,18 @@ function getOrCreate(map: Map<string, PlayerStats>, address: string): PlayerStat
   return s
 }
 
-export function useLeaderboard(contract: GameContractInstance) {
+export function useLeaderboard(contract: GameContractInstance | null) {
   const statsRef = useRef<Map<string, PlayerStats>>(new Map())
   const [version, setVersion] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(!!contract)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!contract) {
+      setIsLoading(false)
+      return
+    }
+
     let cancelled = false
     statsRef.current = new Map()
     const seen = new Set<string>()

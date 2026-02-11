@@ -7,11 +7,8 @@ import { useWallet } from '@alephium/web3-react'
 import { gameConfig } from '@/services/utils'
 
 export default function LeaderboardPage() {
-  const v1Instance = useMemo(
-    () => gameConfig.v1Address ? ChainReactionV1.at(gameConfig.v1Address) : null,
-    []
-  )
-  const { leaderboard, isLoading, error } = useLeaderboard(v1Instance!)
+  const v1Instance = useMemo(() => gameConfig.getV1Instance(), [])
+  const { leaderboard, isLoading, error } = useLeaderboard(v1Instance)
   const { account } = useWallet()
 
   return (

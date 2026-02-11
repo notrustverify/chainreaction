@@ -52,6 +52,16 @@ The app is configured for static export and can be deployed to GitHub Pages. Env
 - `NEXT_PUBLIC_NETWORK` — `devnet`, `testnet`, or `mainnet`
 - `NEXT_PUBLIC_NODE_URL` — Alephium full node URL
 
+
+## Url parameters 
+
+theme  : forces the use of a custom theme  
+tokens : comma-separated list of token IDs that are allowed when creating a game
+
+exemple : 
+https://game.notrustverify.ch/game?address=23hX2w3VFzwzNs1TTCbJiYHuhqKjRpyp5dWe5PJ64MNBR&theme=elexium&tokens=cad22f7c98f13fe249c25199c61190a9fb4341f8af9b1c17fcff4cd4b2c3d200
+
+
 ## Built by
 
 [No Trust Verify](https://notrustverify.ch)

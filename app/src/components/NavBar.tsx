@@ -6,7 +6,37 @@ import { usePathname } from 'next/navigation'
 import { AlephiumConnectButton } from '@alephium/web3-react'
 import { useThemeForcedParam, useTokensParam, appendPreservedParamsToHref } from '@/theme/useThemeForcedParam'
 
-export const NavBar = forwardRef<HTMLDivElement>((_, ref) => {
+/**
+ * Fallback when NavBar suspends (useSearchParams). Same layout, plain links.
+ * Used so 404 and static pages can build without a Suspense bailout.
+ */
+function NavBarFallback() {
+  return (
+    <nav className="w-full flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-nav-border">
+      <div className="flex items-center gap-3 sm:gap-6">
+        <Link href="/" className="text-lg font-bold text-nav-brand whitespace-nowrap hidden sm:block">
+          Chain Reaction
+        </Link>
+        <div className="flex gap-2 sm:gap-4">
+          <Link href="/" className="text-sm font-medium whitespace-nowrap text-nav-link hover:text-nav-link-hover">
+            Games
+          </Link>
+          <Link href="/leaderboard" className="text-sm font-medium whitespace-nowrap text-nav-link hover:text-nav-link-hover">
+            Leaderboard
+          </Link>
+          <Link href="/how-to-play" className="text-sm font-medium whitespace-nowrap text-nav-link hover:text-nav-link-hover">
+            Rules
+          </Link>
+        </div>
+      </div>
+      <div className="ml-auto">
+        <AlephiumConnectButton />
+      </div>
+    </nav>
+  )
+}
+
+const NavBarInner = forwardRef<HTMLDivElement>(function NavBarInner(_, ref) {
   const pathname = usePathname()
   const themeParam = useThemeForcedParam()
   const tokensParam = useTokensParam()
@@ -51,5 +81,11 @@ export const NavBar = forwardRef<HTMLDivElement>((_, ref) => {
     </nav>
   )
 })
+
+export const NavBar = forwardRef<HTMLDivElement>((_, ref) => (
+  <React.Suspense fallback={<NavBarFallback />}>
+    <NavBarInner ref={ref} />
+  </React.Suspense>
+))
 
 NavBar.displayName = 'NavBar'
