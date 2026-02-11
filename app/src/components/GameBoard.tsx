@@ -241,7 +241,7 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
   return (
     <div className="flex flex-col items-center w-full max-w-2xl px-4 py-8 gap-5">
       {txError && (
-        <p className="w-full text-center text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 break-all line-clamp-3">
+        <p className="w-full text-center text-sm text-notification-error-text bg-notification-error-bg border border-notification-error-border rounded-xl px-4 py-3 break-all line-clamp-3">
           {txError}
         </p>
       )}
@@ -249,7 +249,7 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
       {gameState && uiState === 'active' && (
         <>
           <CountdownTimer endTimestamp={gameState.endTimestamp} />
-          <p className="text-xs text-gray-400 -mt-3">
+          <p className="text-xs text-muted -mt-3">
             Next play resets to{' '}
             {(() => {
               const nextCount = gameState.playerCount + 1n
@@ -304,11 +304,11 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
         }}
         className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full border transition-colors -mt-2 ${
           soundEnabled
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-            : 'bg-gray-50 border-gray-200 text-gray-400 hover:border-emerald-200 hover:text-emerald-500'
+            ? 'bg-notification-on-bg border-notification-on-border text-notification-on-text'
+            : 'bg-notification-off-bg border-notification-off-border text-notification-off-text hover:border-notification-off-hover-border hover:text-notification-off-hover-text'
         }`}
       >
-        <span className={`inline-block w-2 h-2 rounded-full ${soundEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+        <span className={`inline-block w-2 h-2 rounded-full ${soundEnabled ? 'bg-notification-on-dot' : 'bg-notification-off-dot'}`} />
         {soundEnabled ? 'Notify when overtaken: on' : 'Notify when overtaken: off'}
       </button>
 
@@ -328,7 +328,7 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
             tokenDecimals={activeToken.decimals}
           />
           <details className="w-full max-w-sm">
-            <summary className="text-sm text-gray-400 cursor-pointer hover:text-emerald-500 transition-colors text-center select-none">
+            <summary className="text-sm text-muted cursor-pointer hover:text-primary transition-colors text-center select-none">
               Price curve
             </summary>
             <div className="mt-3">
@@ -343,13 +343,13 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
             </div>
           </details>
           <details className="w-full max-w-sm">
-          <summary className="text-sm text-gray-400 cursor-pointer hover:text-emerald-500 transition-colors text-center select-none">
+          <summary className="text-sm text-muted cursor-pointer hover:text-primary transition-colors text-center select-none">
             Boost the pot
           </summary>
           <div className="mt-3 flex gap-2 items-end">
             <div className="flex-1 flex flex-col gap-1">
-              <label htmlFor="incentive" className="text-[11px] text-gray-400 uppercase tracking-wider">
-                Amount ({activeToken.symbol})
+<label htmlFor="incentive" className="text-[11px] text-label uppercase tracking-wider">
+              Amount ({activeToken.symbol})
               </label>
               <input
                 id="incentive"
@@ -358,13 +358,13 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
                 step={0.1}
                 value={incentiveAmount}
                 onChange={(e) => setIncentiveAmount(e.target.value)}
-                className="w-full px-3 py-2 text-center text-base rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                className="w-full px-3 py-2 text-center text-base rounded-lg border border-input-border bg-input-bg text-input-fg focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 focus:border-input-focus-ring"
               />
             </div>
             <button
               onClick={handleIncentivize}
               disabled={!!ongoingTxId || !incentiveAmount || parseFloat(incentiveAmount) <= 0}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-fg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Add
             </button>
@@ -375,16 +375,16 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
 
       {uiState === 'no-chain' && (
         <>
-          <p className="text-gray-400 text-center text-sm">No active chain. Be the first to start one!</p>
+          <p className="text-muted text-center text-sm">No active chain. Be the first to start one!</p>
           <div className="w-full flex flex-col md:flex-row gap-5 md:items-stretch items-start justify-center">
-          <div className="w-full max-w-xs flex flex-col gap-4 p-5 bg-gray-50 rounded-2xl border border-gray-100">
+          <div className="w-full max-w-xs flex flex-col gap-4 p-5 bg-stat-card-bg rounded-2xl border border-card-border">
             <TokenSelector
               tokens={tokenList}
               selected={selectedToken}
               onChange={setSelectedToken}
             />
             <div className="flex flex-col gap-1">
-              <label htmlFor="base-entry" className="text-[11px] text-gray-400 uppercase tracking-wider">
+              <label htmlFor="base-entry" className="text-[11px] text-label uppercase tracking-wider">
                 Entry price ({selectedToken.symbol})
               </label>
               <input
@@ -394,16 +394,16 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
                 step={0.1}
                 value={baseEntry}
                 onChange={(e) => setBaseEntry(e.target.value)}
-                className="w-full px-3 py-2 text-center text-base rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                className="w-full px-3 py-2 text-center text-base rounded-lg border border-input-border bg-input-bg text-input-fg focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 focus:border-input-focus-ring"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] text-gray-400 uppercase tracking-wider">
+              <label className="text-[11px] text-label uppercase tracking-wider">
                 Duration
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="hours" className="text-[10px] text-gray-400 text-center">
+                  <label htmlFor="hours" className="text-[10px] text-label text-center">
                     Hours
                   </label>
                   <input
@@ -413,11 +413,11 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
                     max={3}
                     value={durationHours}
                     onChange={(e) => setDurationHours(Math.max(0, Math.min(3, Number(e.target.value))))}
-                    className="w-full px-3 py-2 text-center text-base rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                    className="w-full px-3 py-2 text-center text-base rounded-lg border border-input-border bg-input-bg text-input-fg focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 focus:border-input-focus-ring"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="minutes" className="text-[10px] text-gray-400 text-center">
+                  <label htmlFor="minutes" className="text-[10px] text-label text-center">
                     Minutes
                   </label>
                   <input
@@ -427,13 +427,13 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
                     max={59}
                     value={durationMinutes}
                     onChange={(e) => setDurationMinutes(Math.max(0, Math.min(59, Number(e.target.value))))}
-                    className="w-full px-3 py-2 text-center text-base rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                    className="w-full px-3 py-2 text-center text-base rounded-lg border border-input-border bg-input-bg text-input-fg focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 focus:border-input-focus-ring"
                   />
                 </div>
               </div>
             </div>
             <div className="flex flex-col gap-1">
-              <label htmlFor="multiplier" className="text-[11px] text-gray-400 uppercase tracking-wider">
+              <label htmlFor="multiplier" className="text-[11px] text-label uppercase tracking-wider">
                 Price increase (%)
               </label>
               <div className="flex items-center gap-3">
@@ -445,13 +445,13 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
                   step={1}
                   value={multiplierPct}
                   onChange={(e) => setMultiplierPct(Number(e.target.value))}
-                  className="flex-1 accent-emerald-500"
+                  className="flex-1 accent-primary"
                 />
-                <span className="text-base font-bold text-emerald-600 min-w-[4ch] text-right">{multiplierPct}%</span>
+                <span className="text-base font-bold text-primary min-w-[4ch] text-right">{multiplierPct}%</span>
               </div>
             </div>
             <div className="flex flex-col gap-1">
-              <label htmlFor="burn-rate" className="text-[11px] text-gray-400 uppercase tracking-wider">
+              <label htmlFor="burn-rate" className="text-[11px] text-label uppercase tracking-wider">
                 Burn rate (%)
               </label>
               <div className="flex items-center gap-3">
@@ -465,13 +465,13 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
                   onChange={(e) => setBurnPct(Number(e.target.value))}
                   className="flex-1 burn-slider"
                 />
-                <span className="text-base font-bold text-red-600 min-w-[4ch] text-right">{burnPct}%</span>
+                <span className="text-base font-bold text-burn-value min-w-[4ch] text-right">{burnPct}%</span>
               </div>
             </div>
           </div>
           {parseFloat(baseEntry) > 0 && (
             <div className="w-full flex-1 min-w-0 flex flex-col">
-              <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-2">Price curve preview</p>
+              <p className="text-[11px] text-label uppercase tracking-wider mb-2">Price curve preview</p>
               <PriceChart
                 baseEntry={BigInt(Math.floor(parseFloat(baseEntry) * 10 ** selectedToken.decimals))}
                 multiplierBps={BigInt(multiplierPct) * 100n}
@@ -487,7 +487,7 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
       )}
 
       {error && (
-        <p className="w-full text-center text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+        <p className="w-full text-center text-sm text-notification-error-text bg-notification-error-bg border border-notification-error-border rounded-xl px-4 py-3">
           {error}
         </p>
       )}
@@ -501,11 +501,11 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
             const url = window.location.href
             window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank')
           }}
-          className="text-xs text-gray-400 hover:text-emerald-500 transition-colors"
+          className="text-xs text-muted hover:text-primary transition-colors"
         >
           Share on X
         </button>
-        <span className="text-gray-300">|</span>
+        <span className="text-muted">|</span>
         <button
           onClick={() => {
             const code = `<iframe src="${window.location.href}" width="450" height="700" frameborder="0" style="border-radius:16px;"></iframe>`
@@ -513,15 +513,15 @@ export const GameBoard: FC<{ contractInstance: GameContractInstance; onConnectRe
             setCopiedShare('embed')
             setTimeout(() => setCopiedShare(null), 2000)
           }}
-          className="text-xs text-gray-400 hover:text-emerald-500 transition-colors"
+          className="text-xs text-muted hover:text-primary transition-colors"
         >
           {copiedShare === 'embed' ? 'Copied!' : 'Embed'}
         </button>
       </div>
 
-      <p className="text-xs text-gray-400 mt-2">
+      <p className="text-xs text-footer-text mt-2">
         Built by{' '}
-        <a href="https://notrustverify.ch" target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-600 underline">
+        <a href="https://notrustverify.ch" target="_blank" rel="noopener noreferrer" className="text-footer-link hover:text-footer-link-hover underline">
           No Trust Verify
         </a>
       </p>

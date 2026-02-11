@@ -19,10 +19,10 @@ function GameContent() {
 
   if (!address) {
     return (
-      <div className="min-h-screen flex flex-col items-center bg-white">
+      <div className="min-h-screen flex flex-col items-center bg-bg">
         <NavBar ref={connectRef} />
         <main className="flex-1 flex flex-col items-center justify-center w-full">
-          <p className="text-gray-400">No game address specified.</p>
+          <p className="text-muted">No game address specified.</p>
         </main>
       </div>
     )
@@ -35,20 +35,17 @@ function GameContent() {
   )
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-white">
-      <NavBar ref={connectRef} />
       <main className="flex-1 flex flex-col items-center justify-center w-full">
         <GameBoard contractInstance={contractInstance} onConnectRequest={openConnect} />
-      </main>
-    </div>
+      </main>    
   )
 }
 
 export default function GamePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-bg">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     }>
       <GameContent />

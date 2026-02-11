@@ -32,12 +32,12 @@ function getTimeRemaining(endTimestamp: bigint): string {
 }
 
 function getStatus(game: GameListItem): { label: string; color: string } {
-  if (!game.state) return { label: 'Unknown', color: 'text-gray-400 bg-gray-50' }
-  if (!game.state.isActive) return { label: 'Waiting', color: 'text-blue-600 bg-blue-50' }
+  if (!game.state) return { label: 'Unknown', color: 'text-muted bg-stat-card-bg' }
+  if (!game.state.isActive) return { label: 'Waiting', color: 'text-btn-join bg-stat-card-bg' }
   if (game.state.canEnd || Date.now() >= Number(game.state.endTimestamp)) {
-    return { label: 'Claimable', color: 'text-amber-600 bg-amber-50' }
+    return { label: 'Claimable', color: 'text-status-claimable bg-status-warning-bg' }
   }
-  return { label: 'Active', color: 'text-emerald-600 bg-emerald-50' }
+  return { label: 'Active', color: 'text-status-success-text bg-status-success-bg' }
 }
 
 export const GameList: FC<{ games: GameListItem[]; isLoading: boolean }> = ({ games, isLoading }) => {
@@ -46,8 +46,8 @@ export const GameList: FC<{ games: GameListItem[]; isLoading: boolean }> = ({ ga
   if (isLoading) {
     return (
       <div className="w-full flex flex-col items-center gap-3 py-8">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-gray-400">Loading games...</p>
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-muted">Loading games...</p>
       </div>
     )
   }
@@ -55,8 +55,8 @@ export const GameList: FC<{ games: GameListItem[]; isLoading: boolean }> = ({ ga
   if (games.length === 0) {
     return (
       <div className="w-full text-center py-12">
-        <p className="text-gray-400 text-lg">No games yet</p>
-        <p className="text-gray-300 text-sm mt-1">Create the first one!</p>
+        <p className="text-muted text-lg">No games yet</p>
+        <p className="text-label text-sm mt-1">Create the first one!</p>
       </div>
     )
   }
@@ -76,16 +76,16 @@ export const GameList: FC<{ games: GameListItem[]; isLoading: boolean }> = ({ ga
             <Link
               key={game.contractId}
               href={`/game?address=${game.address}`}
-              className="group flex flex-col p-4 rounded-2xl border border-gray-100 bg-white hover:border-emerald-200 hover:shadow-sm transition-all"
+              className="group flex flex-col p-4 rounded-2xl border border-card-border bg-card-bg hover:border-card-hover-border hover:shadow-sm transition-all"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-gray-900">#{game.gameId}</span>
+                  <span className="text-sm font-bold text-page-heading">#{game.gameId}</span>
                   <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${status.color}`}>
                     {status.label}
                   </span>
                 </div>
-                <span className="text-xs text-gray-300 group-hover:text-emerald-500 transition-colors">
+                <span className="text-xs text-muted group-hover:text-primary transition-colors">
                   &rarr;
                 </span>
               </div>
@@ -96,35 +96,35 @@ export const GameList: FC<{ games: GameListItem[]; isLoading: boolean }> = ({ ga
                     {token.logoURI && (
                       <img src={token.logoURI} alt={token.symbol} className="w-4 h-4 rounded-full" />
                     )}
-                    <span className="text-gray-600 font-medium">{token.symbol}</span>
+                    <span className="text-fg font-medium">{token.symbol}</span>
                   </div>
 
                   {isActive && (
                     <>
-                      <div className="text-gray-400">
-                        Pot: <span className="text-gray-700 font-medium">{formatTokenAmount(game.state.pot + game.state.boostAmount, token.decimals)}</span>
+                      <div className="text-muted">
+                        Pot: <span className="text-fg font-medium">{formatTokenAmount(game.state.pot + game.state.boostAmount, token.decimals)}</span>
                       </div>
-                      <div className="text-gray-400">
-                        Entry: <span className="text-gray-700 font-medium">{formatTokenAmount(game.state.nextEntryPrice, token.decimals)}</span>
+                      <div className="text-muted">
+                        Entry: <span className="text-fg font-medium">{formatTokenAmount(game.state.nextEntryPrice, token.decimals)}</span>
                       </div>
-                      <div className="text-gray-400">
-                        Players: <span className="text-gray-700 font-medium">{game.state.playerCount.toString()}</span>
+                      <div className="text-muted">
+                        Players: <span className="text-fg font-medium">{game.state.playerCount.toString()}</span>
                       </div>
-                      <div className="text-gray-400">
+                      <div className="text-muted">
                         {getTimeRemaining(game.state.endTimestamp)}
                       </div>
                     </>
                   )}
-                  <div className="text-gray-400">
-                    Decrease: <span className="text-gray-700">{formatDuration(game.state.durationDecreaseMs)}/player</span>
+                  <div className="text-muted">
+                    Decrease: <span className="text-fg">{formatDuration(game.state.durationDecreaseMs)}/player</span>
                   </div>
-                  <div className="text-gray-400">
-                    Min: <span className="text-gray-700">{formatDuration(game.state.minDuration)}</span>
+                  <div className="text-muted">
+                    Min: <span className="text-fg">{formatDuration(game.state.minDuration)}</span>
                   </div>
                 </div>
               )}
 
-              <p className="text-[10px] text-gray-300 mt-2 truncate">{shortenAddress(game.address)}</p>
+              <p className="text-[10px] text-muted mt-2 truncate">{shortenAddress(game.address)}</p>
             </Link>
           )
         })}
@@ -135,17 +135,17 @@ export const GameList: FC<{ games: GameListItem[]; isLoading: boolean }> = ({ ga
           <button
             onClick={() => setPage(p => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="px-3 py-1 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1 text-xs font-medium rounded-lg border border-btn-outline-border text-btn-outline-text hover:border-btn-outline-hover-border hover:text-btn-outline-hover-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             Prev
           </button>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-muted">
             {page + 1} / {totalPages}
           </span>
           <button
             onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
-            className="px-3 py-1 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1 text-xs font-medium rounded-lg border border-btn-outline-border text-btn-outline-text hover:border-btn-outline-hover-border hover:text-btn-outline-hover-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             Next
           </button>
