@@ -1,8 +1,17 @@
+// Resolve a public asset path relative to the app's base URL (handles GitHub Pages subpaths)
+function assetUrl(path: string): string {
+  if (typeof document === 'undefined') return path
+  const base = document.querySelector('base')?.href
+    || document.querySelector('link[rel="manifest"]')?.getAttribute('href')?.replace(/manifest\.json$/, '')
+    || '/'
+  return new URL(path.replace(/^\//, ''), new URL(base, location.href)).href
+}
+
 export async function registerSW(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null
 
   try {
-    await navigator.serviceWorker.register('/sw.js')
+    await navigator.serviceWorker.register(assetUrl('sw.js'))
     // .ready resolves only once the SW is fully activated
     return await navigator.serviceWorker.ready
   } catch (e) {
@@ -35,7 +44,7 @@ let pushConfig: { pushServerUrl: string; vapidPublicKey: string } | null = null
 async function getPushConfig() {
   if (pushConfig) return pushConfig
   try {
-    const res = await fetch('/push-config.json')
+    const res = await fetch(assetUrl('push-config.json'))
     const file = await res.json()
     pushConfig = {
       pushServerUrl: file.pushServerUrl || process.env.NEXT_PUBLIC_PUSH_SERVER_URL || '',
