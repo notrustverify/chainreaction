@@ -17,7 +17,7 @@ function getNetwork(): NetworkId {
   return network
 }
 
-function getNodeUrl(network: NetworkId): string {
+export function getNodeUrl(network: NetworkId): string {
   if (process.env.NEXT_PUBLIC_NODE_URL) return process.env.NEXT_PUBLIC_NODE_URL
   switch (network) {
     case 'devnet': return 'http://127.0.0.1:22973'

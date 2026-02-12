@@ -5,6 +5,7 @@
   "license": "GPL",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node -e \"fs=require('fs');fs.writeFileSync('public/push-config.json',JSON.stringify({pushServerUrl:process.env.NEXT_PUBLIC_PUSH_SERVER_URL||'',vapidPublicKey:process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY||''}))\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
