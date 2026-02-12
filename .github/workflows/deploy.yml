@@ -21,6 +21,8 @@ jobs:
       NEXT_PUBLIC_NETWORK: ${{ vars.NEXT_PUBLIC_NETWORK || 'testnet' }}
       NEXT_PUBLIC_NODE_URL: ${{ vars.NEXT_PUBLIC_NODE_URL || '' }}
       NEXT_PUBLIC_CHAINREACTIONV1: ${{ vars.NEXT_PUBLIC_CHAINREACTIONV1 || '' }}
+      NEXT_PUBLIC_PUSH_SERVER_URL: ${{ vars.NEXT_PUBLIC_PUSH_SERVER_URL || '' }}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '' }}
     steps:
       - uses: actions/checkout@v4
 
