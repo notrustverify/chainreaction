@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { AlephiumConnectButton } from '@alephium/web3-react'
 import { useThemeForcedParam, useTokensParam, appendPreservedParamsToHref } from '@/theme/useThemeForcedParam'
+import { useEmbeddedWallet } from '@/embed/EmbeddedWalletContext'
+import { isEmbedded } from '@/embed/walletBridge'
+import { shortenAddress } from '@/services/game.service'
 
 /**
  * Fallback when NavBar suspends (useSearchParams). Same layout, plain links.
@@ -30,7 +33,7 @@ function NavBarFallback() {
         </div>
       </div>
       <div className="ml-auto">
-        <AlephiumConnectButton />
+        {isEmbedded() ? null : <AlephiumConnectButton />}
       </div>
     </nav>
   )
@@ -41,6 +44,10 @@ const NavBarInner = forwardRef<HTMLDivElement>(function NavBarInner(_, ref) {
   const themeParam = useThemeForcedParam()
   const tokensParam = useTokensParam()
   const preserved = { theme: themeParam, tokens: tokensParam }
+  const { address: embeddedAddress, isEmbeddedWallet, isEmbedBridge } = useEmbeddedWallet()
+
+  const showParentAddress = isEmbeddedWallet && embeddedAddress
+  const hideConnectButton = isEmbedBridge
 
   return (
     <nav className="w-full flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-nav-border">
@@ -75,8 +82,14 @@ const NavBarInner = forwardRef<HTMLDivElement>(function NavBarInner(_, ref) {
           </Link>
         </div>
       </div>
-      <div ref={ref} className="ml-auto">
-        <AlephiumConnectButton />
+      <div ref={ref} className="ml-auto flex items-center">
+        {showParentAddress ? (
+          <span className="text-sm font-medium text-nav-link" title={embeddedAddress}>
+            {shortenAddress(embeddedAddress)}
+          </span>
+        ) : hideConnectButton ? null : (
+          <AlephiumConnectButton />
+        )}
       </div>
     </nav>
   )

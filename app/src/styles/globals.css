@@ -194,6 +194,15 @@ body,
   color: var(--color-fg);
 }
 
+/* When game is embedded in an iframe: no scrollbars; parent should size iframe via postMessage */
+html[data-embedded='true'] {
+  overflow: hidden;
+}
+html[data-embedded='true'] body,
+html[data-embedded='true'] .theme-container {
+  overflow: hidden;
+}
+
 main {
   background-image: var(--bg-image-main);
   background-position: top center;

@@ -4,7 +4,6 @@ import React, { useRef, useCallback, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ChainReaction, ChainReactionV1 } from 'my-contracts'
 import { GameBoard } from '@/components/GameBoard'
-import { NavBar } from '@/components/NavBar'
 import { gameConfig } from '@/services/utils' // ensure node provider is set
 
 function parseTokenIdsFromQuery(searchParams: URLSearchParams): string[] | null {
@@ -45,8 +44,9 @@ function GameContent() {
           contractInstance={contractInstance}
           onConnectRequest={openConnect}
           tokenIdsFromQuery={tokenIdsFromQuery}
+          isV1={isV1}
         />
-      </main>    
+      </main>
   )
 }
 

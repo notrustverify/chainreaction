@@ -10,6 +10,13 @@ import { PriceChart } from './PriceChart'
 import { useWallet } from '@alephium/web3-react'
 import { web3 } from '@alephium/web3'
 import { useChainReaction } from '@/hooks/useChainReaction'
+import { useEmbeddedWallet } from '@/embed/EmbeddedWalletContext'
+import {
+  buildStartChainTxParams,
+  buildJoinChainTxParams,
+  buildEndChainTxParams,
+  buildIncentivizeTxParams,
+} from '@/embed/buildTxParams'
 import { GameContractInstance, startChain, joinChain, endChain, incentivize, GameState, normalizeAddress } from '@/services/game.service'
 import { TokenInfo, ALPH_TOKEN, fetchWalletTokens, fetchTokenBalance, resolveTokenInfo, formatTokenAmount } from '@/services/tokenList'
 import { ActivityFeed } from './ActivityFeed'
@@ -33,8 +40,11 @@ export const GameBoard: FC<{
   onConnectRequest: () => void
   onBrowseGames?: () => void
   tokenIdsFromQuery?: string[] | null
-}> = ({ contractInstance, onConnectRequest,  onBrowseGames, tokenIdsFromQuery }) => {
-  const { signer, account } = useWallet()
+  isV1?: boolean
+}> = ({ contractInstance, onConnectRequest, onBrowseGames, tokenIdsFromQuery, isV1 = false }) => {
+  const { signer, account: walletAccount } = useWallet()
+  const { address: embeddedAddress, publicKey: embeddedPublicKey, isEmbeddedWallet, requestParentSignTxParams } = useEmbeddedWallet()
+  const account = isEmbeddedWallet && embeddedAddress ? { address: embeddedAddress } : walletAccount
   const { gameState, isLoading, error, refresh, players } = useChainReaction(contractInstance)
   const [ongoingTxId, setOngoingTxId] = useState<string>()
   const [txError, setTxError] = useState<string>()
@@ -160,59 +170,96 @@ export const GameBoard: FC<{
   }, [gameState?.tokenId])
 
   const handleStartChain = async () => {
-    if (!signer) { onConnectRequest(); return }
+    const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
+    if (!signer && !canUseEmbedded) { onConnectRequest(); return }
     setTxError(undefined)
 
-    // Validate duration
     const totalMinutes = durationHours * 60 + durationMinutes
     if (totalMinutes < 1) {
       setTxError('Duration must be at least 1 minute')
       return
     }
 
+    const payment = BigInt(Math.floor(parseFloat(baseEntry) * 10 ** selectedToken.decimals))
+    const durationMs = (BigInt(durationHours) * 3600n + BigInt(durationMinutes) * 60n) * 1000n
+    const multiplierBps = BigInt(multiplierPct) * 100n
+    const burnRate = BigInt(burnPct) * 100n
+
     try {
-      const payment = BigInt(Math.floor(parseFloat(baseEntry) * 10 ** selectedToken.decimals))
-      const durationMs = (BigInt(durationHours) * 3600n + BigInt(durationMinutes) * 60n) * 1000n
-      const multiplierBps = BigInt(multiplierPct) * 100n
-      const burnRate = BigInt(burnPct) * 100n
-      const result = await startChain(contractInstance, signer, payment, durationMs, multiplierBps, selectedToken.id, burnRate)
-      setOngoingTxId(result.txId)
+      if (canUseEmbedded) {
+        const txParams = await buildStartChainTxParams(
+          embeddedAddress!,
+          embeddedPublicKey!,
+          contractInstance,
+          payment,
+          durationMs,
+          multiplierBps,
+          selectedToken.id,
+          burnRate
+        )
+        const result = await requestParentSignTxParams(txParams)
+        setOngoingTxId(result.txId)
+      } else {
+        const result = await startChain(contractInstance, signer!, payment, durationMs, multiplierBps, selectedToken.id, burnRate)
+        setOngoingTxId(result.txId)
+      }
     } catch (err) {
       setTxError(err instanceof Error ? err.message : 'Transaction failed')
     }
   }
 
   const handleJoinChain = async () => {
-    if (!signer) { onConnectRequest(); return }
+    const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
+    if (!signer && !canUseEmbedded) { onConnectRequest(); return }
     if (!gameState) return
     setTxError(undefined)
     try {
       const payment = gameState.nextEntryPrice
-      const result = await joinChain(contractInstance, signer, payment, gameState.tokenId)
-      setOngoingTxId(result.txId)
+      if (canUseEmbedded) {
+        const txParams = await buildJoinChainTxParams(embeddedAddress!, embeddedPublicKey!, contractInstance, payment, gameState.tokenId)
+        const result = await requestParentSignTxParams(txParams)
+        setOngoingTxId(result.txId)
+      } else {
+        const result = await joinChain(contractInstance, signer!, payment, gameState.tokenId)
+        setOngoingTxId(result.txId)
+      }
     } catch (err) {
       setTxError(err instanceof Error ? err.message : 'Transaction failed')
     }
   }
 
   const handleEndChain = async () => {
-    if (!signer) { onConnectRequest(); return }
+    const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
+    if (!signer && !canUseEmbedded) { onConnectRequest(); return }
     setTxError(undefined)
     try {
-      const result = await endChain(contractInstance, signer, gameState?.tokenId ?? '')
-      setOngoingTxId(result.txId)
+      if (canUseEmbedded) {
+        const txParams = await buildEndChainTxParams(embeddedAddress!, embeddedPublicKey!, contractInstance, gameState?.tokenId ?? '')
+        const result = await requestParentSignTxParams(txParams)
+        setOngoingTxId(result.txId)
+      } else {
+        const result = await endChain(contractInstance, signer!, gameState?.tokenId ?? '')
+        setOngoingTxId(result.txId)
+      }
     } catch (err) {
       setTxError(err instanceof Error ? err.message : 'Transaction failed')
     }
   }
 
   const handleIncentivize = async () => {
-    if (!signer || !gameState) { onConnectRequest(); return }
+    const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
+    if ((!signer && !canUseEmbedded) || !gameState) { onConnectRequest(); return }
     setTxError(undefined)
+    const amount = BigInt(Math.floor(parseFloat(incentiveAmount) * 10 ** activeToken.decimals))
     try {
-      const amount = BigInt(Math.floor(parseFloat(incentiveAmount) * 10 ** activeToken.decimals))
-      const result = await incentivize(contractInstance, signer, amount, gameState.tokenId)
-      setOngoingTxId(result.txId)
+      if (canUseEmbedded) {
+        const txParams = await buildIncentivizeTxParams(embeddedAddress!, embeddedPublicKey!, contractInstance, amount, gameState.tokenId)
+        const result = await requestParentSignTxParams(txParams)
+        setOngoingTxId(result.txId)
+      } else {
+        const result = await incentivize(contractInstance, signer!, amount, gameState.tokenId)
+        setOngoingTxId(result.txId)
+      }
     } catch (err) {
       setTxError(err instanceof Error ? err.message : 'Transaction failed')
     }
@@ -445,7 +492,7 @@ export const GameBoard: FC<{
       {uiState === 'no-chain' && (
         <>
           <p className="text-muted text-center text-sm">No active chain. Be the first to start one!</p>
-          <div className="w-full flex flex-col md:flex-row gap-5 md:items-stretch items-start justify-center">
+          <div className="w-full max-w-2xl flex flex-col md:flex-row gap-5 md:items-stretch items-center justify-center">
           <div className="w-full max-w-xs flex flex-col gap-4 p-5 bg-stat-card-bg rounded-2xl border border-card-border">
             <TokenSelector
               tokens={tokenList}

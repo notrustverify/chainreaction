@@ -26,13 +26,7 @@ export default function LeaderboardPage() {
           isLoading={isLoading}
           currentUserAddress={account?.address}
         />
-
-        <p className="text-xs text-footer-text mt-4">
-          Built by{' '}
-          <a href="https://notrustverify.ch" target="_blank" rel="noopener noreferrer" className="text-footer-link hover:text-footer-link-hover underline">
-            No Trust Verify
-          </a>
-        </p>
+       
       </main>
     
   )

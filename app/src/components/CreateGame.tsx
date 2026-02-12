@@ -6,6 +6,8 @@ import { web3, addressFromContractId } from '@alephium/web3'
 import { FactoryChainReactionInstance } from 'my-contracts'
 import { createNewGame } from '@/services/factory.service'
 import { useThemeForcedParam, useTokensParam, appendPreservedParamsToHref } from '@/theme/useThemeForcedParam'
+import { useEmbeddedWallet } from '@/embed/EmbeddedWalletContext'
+import { buildCreateNewGameTxParams } from '@/embed/buildTxParams'
 
 type Step = 'idle' | 'signing' | 'confirming' | 'done'
 
@@ -15,6 +17,7 @@ export const CreateGame: FC<{
   onCreated?: () => void
 }> = ({ factory, onConnectRequest, onCreated }) => {
   const { signer } = useWallet()
+  const { address: embeddedAddress, publicKey: embeddedPublicKey, isEmbeddedWallet, requestParentSignTxParams } = useEmbeddedWallet()
   const themeParam = useThemeForcedParam()
   const tokensParam = useTokensParam()
   const preserved = { theme: themeParam, tokens: tokensParam }
@@ -28,8 +31,10 @@ export const CreateGame: FC<{
 
   const busy = step === 'signing' || step === 'confirming'
 
+  const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
+
   const handleCreate = async () => {
-    if (!signer) { onConnectRequest(); return }
+    if (!signer && !canUseEmbedded) { onConnectRequest(); return }
     setTxError(undefined)
     setGameAddress(undefined)
 
@@ -46,7 +51,20 @@ export const CreateGame: FC<{
       setStep('signing')
       const durationDecreaseMs = BigInt(decreaseSeconds) * 1000n
       const minDuration = BigInt(minDurationSeconds) * 1000n
-      const result = await createNewGame(factory, signer, durationDecreaseMs, minDuration)
+
+      let result: { txId: string }
+      if (canUseEmbedded) {
+        const txParams = await buildCreateNewGameTxParams(
+          embeddedAddress!,
+          embeddedPublicKey!,
+          factory,
+          durationDecreaseMs,
+          minDuration
+        )
+        result = await requestParentSignTxParams(txParams)
+      } else {
+        result = await createNewGame(factory, signer!, durationDecreaseMs, minDuration)
+      }
 
       setStep('confirming')
       const provider = web3.getCurrentNodeProvider()

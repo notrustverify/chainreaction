@@ -28,7 +28,7 @@ export default function Home() {
       <main className="flex-1 flex flex-col items-center w-full max-w-6xl px-4 py-8 gap-5">
         
 
-        {v1Instance && (
+      {v1Instance && (
           <GameBoard contractInstance={v1Instance} onConnectRequest={openConnect} onBrowseGames={scrollToGames} />
         )}
 
