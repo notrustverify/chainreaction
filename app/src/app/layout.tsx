@@ -40,7 +40,8 @@ export default function RootLayout({
         <title>Chain Reaction</title>
         <meta name="description" content="Chain Reaction game on Alephium" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.png" />
+        <link rel="manifest" href="/manifest.json" />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="antialiased">

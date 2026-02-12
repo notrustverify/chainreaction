@@ -1,4 +1,4 @@
 {
-  "pushServerUrl": "http://127.0.0.1:3001",
+  "pushServerUrl": "https://push.game.notrustverify.ch",
   "vapidPublicKey": "BI7V68Yt2sHNSiwZiRSdRLcwCJ9P5Jvta9zyBtXXmyKcJOP9eIDBnxIYFbQ2r8aNbzSRhABrgl-hBGtcJM4oGRI"
 }
