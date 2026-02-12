@@ -1,3 +1,5 @@
 node_modules/
 .DS_Store
 .ralph-lsp
+*.env
+!.env.example

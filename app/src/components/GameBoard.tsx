@@ -10,6 +10,8 @@ import { PriceChart } from './PriceChart'
 import { useWallet } from '@alephium/web3-react'
 import { web3 } from '@alephium/web3'
 import { useChainReaction } from '@/hooks/useChainReaction'
+import { sendToSW, notifyViaSW, subscribeToPush, unsubscribeFromPush } from '@/services/sw-register'
+import { getNodeUrl, gameConfig } from '@/services/utils'
 import { useEmbeddedWallet } from '@/embed/EmbeddedWalletContext'
 import {
   buildStartChainTxParams,
@@ -59,7 +61,12 @@ export const GameBoard: FC<{
   const [tokenListFromQuery, setTokenListFromQuery] = useState(false)
   const [userBalance, setUserBalance] = useState<bigint | null>(null)
   const [copiedShare, setCopiedShare] = useState<'embed' | null>(null)
-  const [soundEnabled, setSoundEnabled] = useState(false)
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chainreaction-notify') === 'on'
+    }
+    return false
+  })
   const wasLastPlayerRef = useRef(false)
   const dingRef = useRef<HTMLAudioElement | null>(null)
   const notified5minRef = useRef(false)
@@ -113,13 +120,12 @@ export const GameBoard: FC<{
     : false
 
   const notify = (title: string, body: string) => {
-    try {
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, { body, icon: '/favicon.ico' })
+    if (typeof window === 'undefined' || Notification.permission !== 'granted') return
+    notifyViaSW(title, { body, icon: '/favicon.ico' }).then((ok) => {
+      if (!ok) {
+        try { new Notification(title, { body, icon: '/favicon.ico' }) } catch {}
       }
-    } catch (e) {
-      console.warn('Notification failed:', e)
-    }
+    })
   }
 
   useEffect(() => {
@@ -132,6 +138,26 @@ export const GameBoard: FC<{
     }
     wasLastPlayerRef.current = isLastPlayer
   }, [isLastPlayer, soundEnabled])
+
+  // Send polling config to service worker + register with push server
+  // No cleanup — the SW should keep polling even after the tab closes
+  useEffect(() => {
+    if (soundEnabled && gameState?.isActive) {
+      sendToSW({
+        type: 'START_POLLING',
+        nodeUrl: getNodeUrl(gameConfig.network),
+        contractAddress: contractInstance.address,
+        userAddress: account?.address || null,
+        isLastPlayer: isLastPlayer,
+      })
+      subscribeToPush(contractInstance.address, account?.address || null).then(ok => {
+        console.log('[GameBoard] Push subscribe result:', ok)
+      })
+    } else if (!soundEnabled) {
+      sendToSW({ type: 'STOP_POLLING' })
+      unsubscribeFromPush(contractInstance.address)
+    }
+  }, [soundEnabled, gameState?.isActive, account?.address, contractInstance.address])
 
   useEffect(() => {
     if (!soundEnabled || !gameState?.isActive) {
@@ -371,6 +397,7 @@ export const GameBoard: FC<{
               onClick={async () => {
                 const enabling = !soundEnabled
                 setSoundEnabled(enabling)
+                localStorage.setItem('chainreaction-notify', enabling ? 'on' : 'off')
                 if (enabling) {
                   if (!dingRef.current) dingRef.current = new Audio('/ding.mp3')
                   dingRef.current.play().catch(() => {})
@@ -380,7 +407,7 @@ export const GameBoard: FC<{
                       permission = await Notification.requestPermission()
                     }
                     if (permission === 'granted') {
-                      new Notification('Notifications enabled', { body: 'You\'ll be notified when overtaken or when time is running out.', icon: '/favicon.ico' })
+                      notifyViaSW('Notifications enabled', { body: 'You\'ll be notified when overtaken or when time is running out.', icon: '/favicon.ico' })
                     }
                   }
                 }
