@@ -5,6 +5,7 @@ console.log('[SW] Service worker loaded')
 
 let config = null // { nodeUrl, contractAddress, userAddress }
 let wasLastPlayer = false
+let wasActive = false
 let notified5min = false
 let notified1min = false
 let polling = false
@@ -37,9 +38,22 @@ async function checkGameState() {
 
     console.log('[SW] Game state — active:', isActive, 'lastPlayer:', lastPlayer, 'userAddr:', config.userAddress)
 
+    // Detect new game started (was inactive, now active)
+    if (!wasActive && isActive) {
+      console.log('[SW] New game started! Showing notification')
+      self.registration.showNotification('New game started!', {
+        body: 'A new Chain Reaction round has begun. Join now!',
+        icon: '/favicon.ico',
+        tag: 'new-game',
+      })
+      notified5min = false
+      notified1min = false
+      wasLastPlayer = false
+    }
+    wasActive = isActive
+
     if (!isActive) {
-      console.log('[SW] Game not active, stopping polling')
-      polling = false
+      console.log('[SW] Game not active, waiting for new game')
       return
     }
 
@@ -110,6 +124,7 @@ self.addEventListener('message', (event) => {
     }
     if (!polling) {
       polling = true
+      wasActive = true // assume game is active on start to avoid false "new game" notification
       notified5min = false
       notified1min = false
       console.log('[SW] Starting poll loop')

@@ -7,7 +7,7 @@ import { CountdownTimer } from './CountdownTimer'
 import { GameStats } from './GameStats'
 import { TokenSelector } from './TokenSelector'
 import { PriceChart } from './PriceChart'
-import { useWallet } from '@alephium/web3-react'
+import { useWallet, useConnectSettingContext } from '@alephium/web3-react'
 import { web3 } from '@alephium/web3'
 import { useChainReaction } from '@/hooks/useChainReaction'
 import { sendToSW, notifyViaSW, subscribeToPush, unsubscribeFromPush } from '@/services/sw-register'
@@ -33,7 +33,7 @@ function deriveUIState(
   if (isLoading) return 'loading'
   if (error) return 'error'
   if (!gameState || !gameState.isActive) return 'no-chain'
-  if (gameState.canEnd || Date.now() >= Number(gameState.endTimestamp)) return 'claimable'
+  if (Date.now() >= Number(gameState.endTimestamp)) return 'claimable'
   return 'active'
 }
 
@@ -43,8 +43,9 @@ export const GameBoard: FC<{
   onBrowseGames?: () => void
   tokenIdsFromQuery?: string[] | null
   isV1?: boolean
-}> = ({ contractInstance, onConnectRequest, onBrowseGames, tokenIdsFromQuery, isV1 = false }) => {
+}> = ({ contractInstance, onBrowseGames, tokenIdsFromQuery, isV1 = false }) => {
   const { signer, account: walletAccount } = useWallet()
+  const { setOpen: openConnectModal } = useConnectSettingContext()
   const { address: embeddedAddress, publicKey: embeddedPublicKey, isEmbeddedWallet, requestParentSignTxParams } = useEmbeddedWallet()
   const account = isEmbeddedWallet && embeddedAddress ? { address: embeddedAddress } : walletAccount
   const { gameState, isLoading, error, refresh, players } = useChainReaction(contractInstance)
@@ -197,7 +198,7 @@ export const GameBoard: FC<{
 
   const handleStartChain = async () => {
     const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
-    if (!signer && !canUseEmbedded) { onConnectRequest(); return }
+    if (!signer && !canUseEmbedded) { openConnectModal(true); return }
     setTxError(undefined)
 
     const totalMinutes = durationHours * 60 + durationMinutes
@@ -236,7 +237,7 @@ export const GameBoard: FC<{
 
   const handleJoinChain = async () => {
     const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
-    if (!signer && !canUseEmbedded) { onConnectRequest(); return }
+    if (!signer && !canUseEmbedded) { openConnectModal(true); return }
     if (!gameState) return
     setTxError(undefined)
     try {
@@ -256,7 +257,7 @@ export const GameBoard: FC<{
 
   const handleEndChain = async () => {
     const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
-    if (!signer && !canUseEmbedded) { onConnectRequest(); return }
+    if (!signer && !canUseEmbedded) { openConnectModal(true); return }
     setTxError(undefined)
     try {
       if (canUseEmbedded) {
@@ -274,7 +275,7 @@ export const GameBoard: FC<{
 
   const handleIncentivize = async () => {
     const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
-    if ((!signer && !canUseEmbedded) || !gameState) { onConnectRequest(); return }
+    if ((!signer && !canUseEmbedded) || !gameState) { openConnectModal(true); return }
     setTxError(undefined)
     const amount = BigInt(Math.floor(parseFloat(incentiveAmount) * 10 ** activeToken.decimals))
     try {

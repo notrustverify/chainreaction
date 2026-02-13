@@ -38,6 +38,8 @@ interface ContractState {
 
 // Map<contractAddress, Subscriber[]>
 const contracts = new Map<string, Subscriber[]>()
+// Track previous isActive state per contract to detect new game starts
+const prevActive = new Map<string, boolean>()
 
 // --- Alephium polling ---
 
@@ -88,10 +90,33 @@ async function pollContracts() {
     const state = await fetchContractState(contractAddress)
     if (!state) continue
 
+    const wasActive = prevActive.get(contractAddress) ?? false
+    prevActive.set(contractAddress, state.isActive)
+
     if (!state.isActive) {
-      // Game ended — clean up all subscribers for this contract
-      contracts.delete(contractAddress)
+      // Game not active — keep subscribers so they get notified when a new game starts
       continue
+    }
+
+    // Detect new game started (was inactive, now active)
+    if (!wasActive && state.isActive) {
+      console.log(`[poll] New game started on ${contractAddress}`)
+      const expiredOnStart: number[] = []
+      for (let i = 0; i < subs.length; i++) {
+        const sub = subs[i]
+        // Reset per-game notification flags
+        sub.wasLastPlayer = false
+        sub.notified5min = false
+        sub.notified1min = false
+        const result = await sendPush(sub, {
+          title: 'New game started!',
+          body: 'A new Chain Reaction round has begun. Join now!',
+        })
+        if (result === 'expired') expiredOnStart.push(i)
+      }
+      for (let i = expiredOnStart.length - 1; i >= 0; i--) {
+        subs.splice(expiredOnStart[i], 1)
+      }
     }
 
     const remaining = state.endTimestamp - Date.now()
