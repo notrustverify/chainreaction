@@ -159,7 +159,8 @@ export const GameBoard: FC<{
         isLastPlayer: isLastPlayer,
         endTimestamp: gameState.endTimestamp ? Number(gameState.endTimestamp) : null,
       })
-      subscribeToPush(contractInstance.address, account?.address || null).then(ok => {
+      const endTs = gameState.endTimestamp ? Number(gameState.endTimestamp) : null
+      subscribeToPush(contractInstance.address, account?.address || null, endTs).then(ok => {
         console.log('[GameBoard] Push subscribe result:', ok)
       })
     } else if (!soundEnabled) {

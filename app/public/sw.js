@@ -122,15 +122,16 @@ self.addEventListener('message', (event) => {
     if (data.isLastPlayer !== undefined) {
       wasLastPlayer = data.isLastPlayer
     }
+    // Pre-set notification flags based on current remaining time to avoid duplicate alerts on refresh
+    if (data.endTimestamp) {
+      const remaining = data.endTimestamp - Date.now()
+      notified5min = remaining <= 5 * 60 * 1000
+      notified1min = remaining <= 60 * 1000
+    }
     if (!polling) {
       polling = true
       wasActive = true // assume game is active on start to avoid false "new game" notification
-      // Pre-set notification flags based on current remaining time to avoid duplicate alerts on refresh
-      if (data.endTimestamp) {
-        const remaining = data.endTimestamp - Date.now()
-        notified5min = remaining <= 5 * 60 * 1000
-        notified1min = remaining <= 60 * 1000
-      } else {
+      if (!data.endTimestamp) {
         notified5min = false
         notified1min = false
       }
@@ -138,7 +139,7 @@ self.addEventListener('message', (event) => {
       // waitUntil keeps the SW alive as long as pollLoop is running
       event.waitUntil(pollLoop())
     } else {
-      console.log('[SW] Already polling, updated config')
+      console.log('[SW] Already polling, updated config + flags')
     }
   } else if (data.type === 'STOP_POLLING') {
     console.log('[SW] Stopping polling')

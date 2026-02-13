@@ -52,8 +52,8 @@ db.exec(`
 // --- Prepared statements ---
 
 const stmtUpsertSub = db.prepare(`
-  INSERT INTO subscribers (endpoint, subscription, contract_address, user_address, was_last_player)
-  VALUES (@endpoint, @subscription, @contractAddress, @userAddress, @wasLastPlayer)
+  INSERT INTO subscribers (endpoint, subscription, contract_address, user_address, was_last_player, notified_5min, notified_1min)
+  VALUES (@endpoint, @subscription, @contractAddress, @userAddress, @wasLastPlayer, @notified5min, @notified1min)
   ON CONFLICT(endpoint, contract_address) DO UPDATE SET
     subscription = @subscription,
     user_address = @userAddress,
@@ -304,18 +304,23 @@ const server = createServer(async (req, res) => {
         subscription: webpush.PushSubscription
         contractAddress: string
         userAddress?: string | null
+        endTimestamp?: number | null
       }
 
       if (!body.subscription?.endpoint || !body.contractAddress) {
         return json(res, 400, { error: 'Missing subscription or contractAddress' })
       }
 
+      // Pre-set notification flags so new subscribers don't get stale warnings
+      const remaining = body.endTimestamp ? body.endTimestamp - Date.now() : Infinity
       stmtUpsertSub.run({
         endpoint: body.subscription.endpoint,
         subscription: JSON.stringify(body.subscription),
         contractAddress: body.contractAddress,
         userAddress: body.userAddress || null,
         wasLastPlayer: 0,
+        notified5min: remaining <= 5 * 60 * 1000 ? 1 : 0,
+        notified1min: remaining <= 60 * 1000 ? 1 : 0,
       })
 
       const count = (stmtGetSubs.all({ contractAddress: body.contractAddress }) as SubRow[]).length

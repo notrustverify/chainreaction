@@ -59,7 +59,7 @@ async function getPushConfig() {
   return pushConfig
 }
 
-export async function subscribeToPush(contractAddress: string, userAddress: string | null): Promise<boolean> {
+export async function subscribeToPush(contractAddress: string, userAddress: string | null, endTimestamp?: number | null): Promise<boolean> {
   const config = await getPushConfig()
   console.log('[push] Config loaded:', JSON.stringify(config))
 
@@ -88,7 +88,7 @@ export async function subscribeToPush(contractAddress: string, userAddress: stri
     const res = await fetch(`${config.pushServerUrl}/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription, contractAddress, userAddress }),
+      body: JSON.stringify({ subscription, contractAddress, userAddress, endTimestamp: endTimestamp || null }),
     })
 
     if (res.ok) {
