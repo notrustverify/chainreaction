@@ -113,6 +113,16 @@ export const GameBoard: FC<{
     }
   }, [account?.address, tokenIdsFromQuery])
 
+  // Pre-select token from last chain when game is inactive
+  useEffect(() => {
+    if (tokenListFromQuery) return
+    if (!gameState || gameState.isActive || !gameState.tokenId) return
+    resolveTokenInfo(gameState.tokenId).then(token => {
+      setSelectedToken(token)
+      setTokenList(prev => prev.some(t => t.id === token.id) ? prev : [...prev, token])
+    })
+  }, [gameState?.tokenId, gameState?.isActive, tokenListFromQuery])
+
   useEffect(() => {
     if (account?.address && gameState?.tokenId && gameState.isActive) {
       fetchTokenBalance(account.address, gameState.tokenId).then(setUserBalance)
