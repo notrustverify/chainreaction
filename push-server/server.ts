@@ -57,7 +57,9 @@ const stmtUpsertSub = db.prepare(`
   ON CONFLICT(endpoint, contract_address) DO UPDATE SET
     subscription = @subscription,
     user_address = @userAddress,
-    was_last_player = CASE WHEN subscribers.was_last_player = 1 THEN 1 ELSE @wasLastPlayer END
+    was_last_player = CASE WHEN subscribers.was_last_player = 1 THEN 1 ELSE @wasLastPlayer END,
+    notified_5min = CASE WHEN @notified5min = 1 THEN 1 ELSE subscribers.notified_5min END,
+    notified_1min = CASE WHEN @notified1min = 1 THEN 1 ELSE subscribers.notified_1min END
 `)
 
 const stmtDeleteSub = db.prepare(`
