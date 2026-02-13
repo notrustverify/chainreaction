@@ -1,4 +1,5 @@
 import { createServer, IncomingMessage, ServerResponse } from 'node:http'
+import Database from 'better-sqlite3'
 import webpush from 'web-push'
 
 // --- Config ---
@@ -10,6 +11,7 @@ const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY
 const VAPID_EMAIL = process.env.VAPID_EMAIL || 'mailto:admin@chainreaction.game'
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || '10000')
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',')
+const DB_PATH = process.env.DB_PATH || './data/push.db'
 
 if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
   console.error('Missing VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY. Run: npm run generate-vapid-keys')
@@ -18,15 +20,97 @@ if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
 
 webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
 
-// --- Types ---
+// --- Database ---
 
-interface Subscriber {
-  subscription: webpush.PushSubscription
-  userAddress: string | null
-  wasLastPlayer: boolean
-  notified5min: boolean
-  notified1min: boolean
-}
+import { mkdirSync } from 'node:fs'
+import { dirname } from 'node:path'
+mkdirSync(dirname(DB_PATH), { recursive: true })
+
+const db = new Database(DB_PATH)
+db.pragma('journal_mode = WAL')
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS subscribers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    endpoint TEXT NOT NULL,
+    subscription TEXT NOT NULL,
+    contract_address TEXT NOT NULL,
+    user_address TEXT,
+    was_last_player INTEGER NOT NULL DEFAULT 0,
+    notified_5min INTEGER NOT NULL DEFAULT 0,
+    notified_1min INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(endpoint, contract_address)
+  );
+
+  CREATE TABLE IF NOT EXISTS contract_state (
+    contract_address TEXT PRIMARY KEY,
+    was_active INTEGER NOT NULL DEFAULT 0
+  );
+`)
+
+// --- Prepared statements ---
+
+const stmtUpsertSub = db.prepare(`
+  INSERT INTO subscribers (endpoint, subscription, contract_address, user_address, was_last_player)
+  VALUES (@endpoint, @subscription, @contractAddress, @userAddress, @wasLastPlayer)
+  ON CONFLICT(endpoint, contract_address) DO UPDATE SET
+    subscription = @subscription,
+    user_address = @userAddress,
+    was_last_player = CASE WHEN subscribers.was_last_player = 1 THEN 1 ELSE @wasLastPlayer END
+`)
+
+const stmtDeleteSub = db.prepare(`
+  DELETE FROM subscribers WHERE endpoint = @endpoint AND contract_address = @contractAddress
+`)
+
+const stmtDeleteSubAll = db.prepare(`
+  DELETE FROM subscribers WHERE endpoint = @endpoint
+`)
+
+const stmtGetSubs = db.prepare(`
+  SELECT id, endpoint, subscription, contract_address, user_address,
+         was_last_player, notified_5min, notified_1min
+  FROM subscribers WHERE contract_address = @contractAddress
+`)
+
+const stmtGetContracts = db.prepare(`
+  SELECT DISTINCT contract_address FROM subscribers
+`)
+
+const stmtDeleteById = db.prepare(`
+  DELETE FROM subscribers WHERE id = @id
+`)
+
+const stmtUpdateFlags = db.prepare(`
+  UPDATE subscribers SET was_last_player = @wasLastPlayer,
+    notified_5min = @notified5min, notified_1min = @notified1min
+  WHERE id = @id
+`)
+
+const stmtResetFlags = db.prepare(`
+  UPDATE subscribers SET was_last_player = 0, notified_5min = 0, notified_1min = 0
+  WHERE contract_address = @contractAddress
+`)
+
+const stmtGetContractState = db.prepare(`
+  SELECT was_active FROM contract_state WHERE contract_address = @contractAddress
+`)
+
+const stmtUpsertContractState = db.prepare(`
+  INSERT INTO contract_state (contract_address, was_active) VALUES (@contractAddress, @wasActive)
+  ON CONFLICT(contract_address) DO UPDATE SET was_active = @wasActive
+`)
+
+const stmtCountSubs = db.prepare(`
+  SELECT COUNT(*) as count FROM subscribers
+`)
+
+const stmtCountContracts = db.prepare(`
+  SELECT COUNT(DISTINCT contract_address) as count FROM subscribers
+`)
+
+// --- Types ---
 
 interface ContractState {
   lastPlayer: string
@@ -34,12 +118,16 @@ interface ContractState {
   endTimestamp: number
 }
 
-// --- State ---
-
-// Map<contractAddress, Subscriber[]>
-const contracts = new Map<string, Subscriber[]>()
-// Track previous isActive state per contract to detect new game starts
-const prevActive = new Map<string, boolean>()
+interface SubRow {
+  id: number
+  endpoint: string
+  subscription: string
+  contract_address: string
+  user_address: string | null
+  was_last_player: number
+  notified_5min: number
+  notified_1min: number
+}
 
 // --- Alephium polling ---
 
@@ -67,11 +155,11 @@ async function fetchContractState(contractAddress: string): Promise<ContractStat
   }
 }
 
-async function sendPush(sub: Subscriber, payload: { title: string; body: string }) {
+async function sendPush(sub: SubRow, payload: { title: string; body: string }): Promise<'ok' | 'expired'> {
   try {
-    await webpush.sendNotification(sub.subscription, JSON.stringify(payload))
+    const subscription = JSON.parse(sub.subscription) as webpush.PushSubscription
+    await webpush.sendNotification(subscription, JSON.stringify(payload))
   } catch (e: any) {
-    // 410 Gone or 404 = subscription expired, remove it
     if (e.statusCode === 410 || e.statusCode === 404) {
       return 'expired'
     }
@@ -81,87 +169,92 @@ async function sendPush(sub: Subscriber, payload: { title: string; body: string 
 }
 
 async function pollContracts() {
-  for (const [contractAddress, subs] of contracts.entries()) {
-    if (subs.length === 0) {
-      contracts.delete(contractAddress)
-      continue
-    }
+  const contractRows = stmtGetContracts.all() as { contract_address: string }[]
+
+  for (const { contract_address: contractAddress } of contractRows) {
+    const subs = stmtGetSubs.all({ contractAddress }) as SubRow[]
+    if (subs.length === 0) continue
 
     const state = await fetchContractState(contractAddress)
     if (!state) continue
 
-    const wasActive = prevActive.get(contractAddress) ?? false
-    prevActive.set(contractAddress, state.isActive)
+    const prev = stmtGetContractState.get({ contractAddress }) as { was_active: number } | undefined
+    const wasActive = prev?.was_active === 1
+    stmtUpsertContractState.run({ contractAddress, wasActive: state.isActive ? 1 : 0 })
 
     if (!state.isActive) {
-      // Game not active — keep subscribers so they get notified when a new game starts
       continue
     }
 
     // Detect new game started (was inactive, now active)
     if (!wasActive && state.isActive) {
       console.log(`[poll] New game started on ${contractAddress}`)
-      const expiredOnStart: number[] = []
-      for (let i = 0; i < subs.length; i++) {
-        const sub = subs[i]
-        // Reset per-game notification flags
-        sub.wasLastPlayer = false
-        sub.notified5min = false
-        sub.notified1min = false
+      stmtResetFlags.run({ contractAddress })
+      for (const sub of subs) {
         const result = await sendPush(sub, {
           title: 'New game started!',
           body: 'A new Chain Reaction round has begun. Join now!',
         })
-        if (result === 'expired') expiredOnStart.push(i)
+        if (result === 'expired') stmtDeleteById.run({ id: sub.id })
       }
-      for (let i = expiredOnStart.length - 1; i >= 0; i--) {
-        subs.splice(expiredOnStart[i], 1)
-      }
+      // Re-fetch after deleting expired
+      continue
     }
 
     const remaining = state.endTimestamp - Date.now()
-    const expiredIndices: number[] = []
 
-    for (let i = 0; i < subs.length; i++) {
-      const sub = subs[i]
+    for (const sub of subs) {
+      let wasLastPlayer = sub.was_last_player === 1
+      let notified5min = sub.notified_5min === 1
+      let notified1min = sub.notified_1min === 1
+      let changed = false
 
       // Check overtaken (only if user address is set)
-      if (sub.userAddress) {
-        const isUserLastPlayer = normalizeAddress(state.lastPlayer) === normalizeAddress(sub.userAddress)
+      if (sub.user_address) {
+        const isUserLastPlayer = normalizeAddress(state.lastPlayer) === normalizeAddress(sub.user_address)
 
-        if (sub.wasLastPlayer && !isUserLastPlayer) {
+        if (wasLastPlayer && !isUserLastPlayer) {
           const result = await sendPush(sub, {
             title: "You've been overtaken!",
             body: 'Someone just took the lead in Chain Reaction. Play now to reclaim it!',
           })
-          if (result === 'expired') { expiredIndices.push(i); continue }
+          if (result === 'expired') { stmtDeleteById.run({ id: sub.id }); continue }
         }
-        sub.wasLastPlayer = isUserLastPlayer
+        if (wasLastPlayer !== isUserLastPlayer) {
+          wasLastPlayer = isUserLastPlayer
+          changed = true
+        }
       }
 
       // Check time warnings
-      if (remaining <= 5 * 60 * 1000 && remaining > 0 && !sub.notified5min) {
-        sub.notified5min = true
+      if (remaining <= 5 * 60 * 1000 && remaining > 0 && !notified5min) {
+        notified5min = true
+        changed = true
         const result = await sendPush(sub, {
           title: '5 minutes left!',
           body: 'Chain Reaction is ending soon. Make your move!',
         })
-        if (result === 'expired') { expiredIndices.push(i); continue }
+        if (result === 'expired') { stmtDeleteById.run({ id: sub.id }); continue }
       }
 
-      if (remaining <= 60 * 1000 && remaining > 0 && !sub.notified1min) {
-        sub.notified1min = true
+      if (remaining <= 60 * 1000 && remaining > 0 && !notified1min) {
+        notified1min = true
+        changed = true
         const result = await sendPush(sub, {
           title: '1 minute left!',
           body: 'Chain Reaction is about to end! Last chance to play!',
         })
-        if (result === 'expired') { expiredIndices.push(i); continue }
+        if (result === 'expired') { stmtDeleteById.run({ id: sub.id }); continue }
       }
-    }
 
-    // Remove expired subscriptions (reverse order to preserve indices)
-    for (let i = expiredIndices.length - 1; i >= 0; i--) {
-      subs.splice(expiredIndices[i], 1)
+      if (changed) {
+        stmtUpdateFlags.run({
+          id: sub.id,
+          wasLastPlayer: wasLastPlayer ? 1 : 0,
+          notified5min: notified5min ? 1 : 0,
+          notified1min: notified1min ? 1 : 0,
+        })
+      }
     }
   }
 }
@@ -217,29 +310,16 @@ const server = createServer(async (req, res) => {
         return json(res, 400, { error: 'Missing subscription or contractAddress' })
       }
 
-      const subs = contracts.get(body.contractAddress) || []
-
-      // Replace existing subscription for same endpoint
-      const existing = subs.findIndex(s => s.subscription.endpoint === body.subscription.endpoint)
-      const sub: Subscriber = {
-        subscription: body.subscription,
+      stmtUpsertSub.run({
+        endpoint: body.subscription.endpoint,
+        subscription: JSON.stringify(body.subscription),
+        contractAddress: body.contractAddress,
         userAddress: body.userAddress || null,
-        wasLastPlayer: false,
-        notified5min: false,
-        notified1min: false,
-      }
+        wasLastPlayer: 0,
+      })
 
-      if (existing >= 0) {
-        // Preserve wasLastPlayer state on re-subscribe
-        sub.wasLastPlayer = subs[existing].wasLastPlayer
-        subs[existing] = sub
-      } else {
-        subs.push(sub)
-      }
-
-      contracts.set(body.contractAddress, subs)
-
-      console.log(`[subscribe] contract=${body.contractAddress} user=${body.userAddress || 'anonymous'} total=${subs.length}`)
+      const count = (stmtGetSubs.all({ contractAddress: body.contractAddress }) as SubRow[]).length
+      console.log(`[subscribe] contract=${body.contractAddress} user=${body.userAddress || 'anonymous'} total=${count}`)
       return json(res, 200, { ok: true })
     } catch (e) {
       return json(res, 400, { error: 'Invalid JSON' })
@@ -258,24 +338,13 @@ const server = createServer(async (req, res) => {
       }
 
       if (body.contractAddress) {
-        // Remove from specific contract
-        const subs = contracts.get(body.contractAddress)
-        if (subs) {
-          const idx = subs.findIndex(s => s.subscription.endpoint === body.endpoint)
-          if (idx >= 0) subs.splice(idx, 1)
-          if (subs.length === 0) contracts.delete(body.contractAddress)
-        }
+        stmtDeleteSub.run({ endpoint: body.endpoint, contractAddress: body.contractAddress })
       } else {
-        // Remove from all contracts
-        for (const [addr, subs] of contracts.entries()) {
-          const idx = subs.findIndex(s => s.subscription.endpoint === body.endpoint)
-          if (idx >= 0) subs.splice(idx, 1)
-          if (subs.length === 0) contracts.delete(addr)
-        }
+        stmtDeleteSubAll.run({ endpoint: body.endpoint })
       }
 
-      const totalSubs = Array.from(contracts.values()).reduce((n, s) => n + s.length, 0)
-      console.log(`[unsubscribe] contract=${body.contractAddress || 'all'} remaining=${totalSubs}`)
+      const total = (stmtCountSubs.get() as { count: number }).count
+      console.log(`[unsubscribe] contract=${body.contractAddress || 'all'} remaining=${total}`)
       return json(res, 200, { ok: true })
     } catch (e) {
       return json(res, 400, { error: 'Invalid JSON' })
@@ -283,8 +352,9 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && url.pathname === '/health') {
-    const totalSubs = Array.from(contracts.values()).reduce((n, s) => n + s.length, 0)
-    return json(res, 200, { ok: true, contracts: contracts.size, subscribers: totalSubs })
+    const totalSubs = (stmtCountSubs.get() as { count: number }).count
+    const totalContracts = (stmtCountContracts.get() as { count: number }).count
+    return json(res, 200, { ok: true, contracts: totalContracts, subscribers: totalSubs })
   }
 
   json(res, 404, { error: 'Not found' })
@@ -294,8 +364,13 @@ const server = createServer(async (req, res) => {
 
 setInterval(pollContracts, POLL_INTERVAL)
 
+const startupSubs = (stmtCountSubs.get() as { count: number }).count
+const startupContracts = (stmtCountContracts.get() as { count: number }).count
+console.log(`Restored ${startupSubs} subscriber(s) across ${startupContracts} contract(s) from database`)
+
 server.listen(PORT, () => {
   console.log(`Push server listening on :${PORT}`)
   console.log(`Alephium node: ${NODE_URL}`)
   console.log(`Poll interval: ${POLL_INTERVAL}ms`)
+  console.log(`Database: ${DB_PATH}`)
 })

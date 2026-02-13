@@ -7,9 +7,11 @@
     "generate-vapid-keys": "node --import tsx generate-vapid-keys.ts"
   },
   "dependencies": {
+    "better-sqlite3": "^12.6.2",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.16.13",
     "tsx": "^4.19.0"
   }

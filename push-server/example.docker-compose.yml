@@ -11,4 +11,10 @@ services:
       - ALEPHIUM_NODE_URL=${ALEPHIUM_NODE_URL:-https://node.mainnet.alephium.org}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - POLL_INTERVAL=${POLL_INTERVAL:-10000}
+      - DB_PATH=/app/data/push.db
+    volumes:
+      - push-data:/app/data
     restart: unless-stopped
+
+volumes:
+  push-data:
