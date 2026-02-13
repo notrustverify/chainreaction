@@ -343,7 +343,12 @@ export const GameBoard: FC<{
         }
       }
       case 'claimable':
-        return { label: 'Claim Prize!', onClick: handleEndChain, disabled: !!ongoingTxId, variant: 'claim' as const }
+        return {
+          label: isLastPlayer ? 'Claim Prize!' : 'End Game',
+          onClick: handleEndChain,
+          disabled: !!ongoingTxId,
+          variant: 'claim' as const,
+        }
       case 'error':
         return { label: 'Retry', onClick: () => { refresh() }, disabled: false, variant: 'default' as const }
     }
@@ -389,7 +394,7 @@ export const GameBoard: FC<{
 
             {uiState === 'claimable' && (
               <p className="text-lg font-bold text-amber-500 text-center animate-pulse">
-                {isLastPlayer ? 'You won! Claim your prize!' : 'Chain ended! Anyone can trigger the payout.'}
+                {isLastPlayer ? 'You won! Claim your prize!' : 'Game ended! End the game to start a new one.'}
               </p>
             )}
 
