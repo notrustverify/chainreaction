@@ -64,6 +64,13 @@ export const GameBoard: FC<{
   const [copiedShare, setCopiedShare] = useState<'embed' | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(() => {
     if (typeof window !== 'undefined') {
+      // Bump this version to force users to re-subscribe after push server changes
+      const NOTIFY_VERSION = '2'
+      if (localStorage.getItem('chainreaction-notify-version') !== NOTIFY_VERSION) {
+        localStorage.setItem('chainreaction-notify-version', NOTIFY_VERSION)
+        localStorage.removeItem('chainreaction-notify')
+        return false
+      }
       return localStorage.getItem('chainreaction-notify') === 'on'
     }
     return false
