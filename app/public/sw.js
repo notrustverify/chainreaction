@@ -125,8 +125,15 @@ self.addEventListener('message', (event) => {
     if (!polling) {
       polling = true
       wasActive = true // assume game is active on start to avoid false "new game" notification
-      notified5min = false
-      notified1min = false
+      // Pre-set notification flags based on current remaining time to avoid duplicate alerts on refresh
+      if (data.endTimestamp) {
+        const remaining = data.endTimestamp - Date.now()
+        notified5min = remaining <= 5 * 60 * 1000
+        notified1min = remaining <= 60 * 1000
+      } else {
+        notified5min = false
+        notified1min = false
+      }
       console.log('[SW] Starting poll loop')
       // waitUntil keeps the SW alive as long as pollLoop is running
       event.waitUntil(pollLoop())
