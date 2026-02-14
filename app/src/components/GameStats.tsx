@@ -11,7 +11,6 @@ interface GameStatsProps {
   lastPlayer: string
   playerCount: bigint
   multiplierBps: bigint
-  burnedAmount: bigint
   burnBps: bigint
   currentUserAddress?: string
   tokenSymbol: string
@@ -19,7 +18,7 @@ interface GameStatsProps {
 }
 
 export const GameStats: FC<GameStatsProps> = ({
-  pot, boostAmount, entryPrice, lastPlayer, playerCount, multiplierBps, burnedAmount, burnBps, currentUserAddress, tokenSymbol, tokenDecimals
+  pot, boostAmount, entryPrice, lastPlayer, playerCount, multiplierBps, burnBps, currentUserAddress, tokenSymbol, tokenDecimals
 }) => {
   const multiplierPct = Number(multiplierBps) / 100
   const burnPct = Number(burnBps) / 100
@@ -34,11 +33,6 @@ export const GameStats: FC<GameStatsProps> = ({
         {boostAmount > 0n && (
           <span className="text-xs text-primary mt-1">
             incl. {formatTokenAmount(boostAmount, tokenDecimals)} {tokenSymbol} boosted
-          </span>
-        )}
-        {burnedAmount > 0n && (
-          <span className="text-xs text-burn-value mt-1">
-            {formatTokenAmount(burnedAmount, tokenDecimals)} {tokenSymbol} burned
           </span>
         )}
       </div>
