@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { addressFromContractId } from '@alephium/web3'
-import { FactoryChainReactionInstance, ChainReaction } from 'my-contracts'
+import { FactoryChainReactionV2Instance, ChainReactionV3 } from 'my-contracts'
 import { GameContractInstance, fetchGameState, GameState } from '@/services/game.service'
 import { TokenInfo, ALPH_TOKEN, resolveTokenInfo } from '@/services/tokenList'
 
@@ -15,7 +15,7 @@ export interface GameListItem {
   tokenInfo: TokenInfo
 }
 
-export function useGameList(factory: FactoryChainReactionInstance) {
+export function useGameList(factory: FactoryChainReactionV2Instance) {
   const gamesRef = useRef<Map<string, GameListItem>>(new Map())
   const [version, setVersion] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -38,7 +38,7 @@ export function useGameList(factory: FactoryChainReactionInstance) {
         const contractId = event.fields.contractId
         const gameId = Number(event.fields.gameId)
         const address = addressFromContractId(contractId)
-        const instance = ChainReaction.at(address)
+        const instance = ChainReactionV3.at(address)
 
         let state: GameState | null = null
         let tokenInfo: TokenInfo = ALPH_TOKEN

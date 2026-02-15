@@ -1,33 +1,49 @@
 'use client'
 
-import React, { FC, useState } from 'react'
+import React, { FC, useState, useEffect } from 'react'
 import { useWallet } from '@alephium/web3-react'
 import { web3, addressFromContractId } from '@alephium/web3'
-import { FactoryChainReactionInstance } from 'my-contracts'
+import { FactoryChainReactionV2Instance } from 'my-contracts'
 import { createNewGame } from '@/services/factory.service'
 import { useThemeForcedParam, useTokensParam, appendPreservedParamsToHref } from '@/theme/useThemeForcedParam'
 import { useEmbeddedWallet } from '@/embed/EmbeddedWalletContext'
 import { buildCreateNewGameTxParams } from '@/embed/buildTxParams'
+import { TokenSelector } from './TokenSelector'
+import { TokenInfo, ALPH_TOKEN, fetchWalletTokens } from '@/services/tokenList'
 
 type Step = 'idle' | 'signing' | 'confirming' | 'done'
 
 export const CreateGame: FC<{
-  factory: FactoryChainReactionInstance
+  factory: FactoryChainReactionV2Instance
   onConnectRequest: () => void
   onCreated?: () => void
 }> = ({ factory, onConnectRequest, onCreated }) => {
-  const { signer } = useWallet()
+  const { signer, account: walletAccount } = useWallet()
   const { address: embeddedAddress, publicKey: embeddedPublicKey, isEmbeddedWallet, requestParentSignTxParams } = useEmbeddedWallet()
+  const account = isEmbeddedWallet && embeddedAddress ? { address: embeddedAddress } : walletAccount
   const themeParam = useThemeForcedParam()
   const tokensParam = useTokensParam()
   const preserved = { theme: themeParam, tokens: tokensParam }
   const [decreaseSeconds, setDecreaseSeconds] = useState(60)
   const [minDurationSeconds, setMinDurationSeconds] = useState(60)
+  const [customFeeEnabled, setCustomFeeEnabled] = useState(false)
+  const [feeAddress, setFeeAddress] = useState('')
+  const [isFixedTokenId, setIsFixedTokenId] = useState(false)
+  const [selectedToken, setSelectedToken] = useState<TokenInfo>(ALPH_TOKEN)
+  const [tokenList, setTokenList] = useState<TokenInfo[]>([ALPH_TOKEN])
   const [isOpen, setIsOpen] = useState(false)
   const [step, setStep] = useState<Step>('idle')
   const [txError, setTxError] = useState<string>()
   const [gameAddress, setGameAddress] = useState<string>()
   const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (account?.address) {
+      fetchWalletTokens(account.address).then(setTokenList)
+    } else {
+      setTokenList([ALPH_TOKEN])
+    }
+  }, [account?.address])
 
   const busy = step === 'signing' || step === 'confirming'
 
@@ -51,6 +67,8 @@ export const CreateGame: FC<{
       setStep('signing')
       const durationDecreaseMs = BigInt(decreaseSeconds) * 1000n
       const minDuration = BigInt(minDurationSeconds) * 1000n
+      const feesAddr = customFeeEnabled && feeAddress.trim() ? feeAddress.trim() : (account?.address || '')
+      const tokenId = selectedToken.id
 
       let result: { txId: string }
       if (canUseEmbedded) {
@@ -59,11 +77,14 @@ export const CreateGame: FC<{
           embeddedPublicKey!,
           factory,
           durationDecreaseMs,
-          minDuration
+          minDuration,
+          feesAddr,
+          isFixedTokenId,
+          tokenId
         )
         result = await requestParentSignTxParams(txParams)
       } else {
-        result = await createNewGame(factory, signer!, durationDecreaseMs, minDuration)
+        result = await createNewGame(factory, signer!, durationDecreaseMs, minDuration, feesAddr, isFixedTokenId, tokenId)
       }
 
       setStep('confirming')
@@ -245,6 +266,88 @@ export const CreateGame: FC<{
             />
             <p className="text-[10px] text-muted">Timer can never go below this value</p>
           </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] text-label uppercase tracking-wider">
+                Custom fee address
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  if (busy) return
+                  const enabling = !customFeeEnabled
+                  setCustomFeeEnabled(enabling)
+                  if (enabling && !feeAddress && account?.address) {
+                    setFeeAddress(account.address)
+                  }
+                }}
+                disabled={busy}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 disabled:opacity-50 ${
+                  customFeeEnabled ? 'bg-primary' : 'bg-btn-outline-border'
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${
+                    customFeeEnabled ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                  }`}
+                />
+              </button>
+            </div>
+            {customFeeEnabled ? (
+              <>
+                <input
+                  id="feeAddress"
+                  type="text"
+                  placeholder="Enter fee recipient address"
+                  value={feeAddress}
+                  onChange={(e) => setFeeAddress(e.target.value)}
+                  disabled={busy}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-input-border bg-input-bg text-input-fg focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 focus:border-input-focus-ring disabled:opacity-50 placeholder:text-muted/50"
+                />
+                <p className="text-[10px] text-muted">Fees will be sent to this address instead of yours</p>
+              </>
+            ) : (
+              <p className="text-[10px] text-muted">Fees go to your connected wallet. Enable to set a different address.</p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-[11px] text-label uppercase tracking-wider">
+              Fixed token
+            </label>
+            <button
+              type="button"
+              onClick={() => !busy && setIsFixedTokenId(!isFixedTokenId)}
+              disabled={busy}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 disabled:opacity-50 ${
+                isFixedTokenId ? 'bg-primary' : 'bg-btn-outline-border'
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm ${
+                  isFixedTokenId ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <p className="text-[10px] text-muted">
+              {isFixedTokenId
+                ? 'Token is locked — players cannot change the token for this game'
+                : 'Token is flexible — players can choose any token when starting a chain'}
+            </p>
+          </div>
+
+          <TokenSelector
+            tokens={tokenList}
+            selected={selectedToken}
+            onChange={setSelectedToken}
+            disabled={busy}
+          />
+          <p className="text-[10px] text-muted -mt-3">
+            {isFixedTokenId
+              ? 'This token will be permanently locked for all chains in this game'
+              : 'Default token for this game (players can override)'}
+          </p>
 
           {txError && (
             <p className="text-xs text-notification-error-text bg-notification-error-bg border border-notification-error-border rounded-lg px-3 py-2 break-all line-clamp-3">

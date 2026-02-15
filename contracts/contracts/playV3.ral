@@ -6,6 +6,8 @@ Contract ChainReactionV3(
     factoryId: ByteVec,
     durationDecreaseMs: U256,
     minDuration: U256,
+    addrFees: Address,
+    isFixedTokenId: Bool,
     mut chainId: U256,
     mut currentEntry: U256,        // Current entry price
     mut lastPlayer: Address,       // Last player who joined
@@ -20,13 +22,15 @@ Contract ChainReactionV3(
     mut multiplierBps: U256,        // Multiplier in basis points (1000 = 10%)
     mut tokenId: ByteVec,
     mut burnBps: U256,
-    mut burnedAmount: U256
+    mut burnedAmount: U256,
+    mut feesBps: U256,
+    mut decayPeriodMs: U256         // Time in ms for price to decay back to baseEntry (0 = no decay)
 ) {
 
     // Events
-    event ChainStarted(chainId: U256, startBlock: U256)
-    event PlayerJoined(chainId: U256, player: Address, entryFee: U256, newPot: U256, position: U256, amountBurned: U256)
-    event ChainEnded(chainId: U256, winner: Address, payout: U256, totalBurned: U256)
+    event ChainStarted(chainId: U256, startBlock: U256, feesBps: U256, tokenId: ByteVec)
+    event PlayerJoined(chainId: U256, player: Address, entryFee: U256, newPot: U256, position: U256, amountBurned: U256, tokenId: ByteVec)
+    event ChainEnded(chainId: U256, winner: Address, payout: U256, totalBurned: U256, feesAmount: U256)
     event ChainTimeout(chainId: U256, player: Address)
     event PotBoosted(caller: Address, amount: U256)
 
@@ -38,22 +42,28 @@ Contract ChainReactionV3(
         GameEnded = 5
         DurationToLow = 6
         BurnRateTooHigh = 7
+        FeesToHigh = 8
+        TokenIdIncorrect = 9
     }
 
     // Start a new chain
     @using(preapprovedAssets = true, updateFields = true, checkExternalCaller = false, assetsInContract = true)
-    pub fn startChain(payment: U256, durationGameMs: U256, multiplierGameBps: U256, tokenIdGame: ByteVec, burnRate: U256) -> (U256, U256, U256, U256) {
+    pub fn startChain(callerAddr: Address, payment: U256, durationGameMs: U256, multiplierGameBps: U256, tokenIdGame: ByteVec, burnRate: U256, feesBpsGame: U256, decayPeriodMsGame: U256) -> (U256, U256, U256, U256) {
         // Check no active chain
         assert!(!isActive, ErrorCodes.ChainAlreadyActive)
         assert!(durationGameMs >= durationDecreaseMs, ErrorCodes.DurationToLow)
         assert!(burnRate <= 10000, ErrorCodes.BurnRateTooHigh)
+        assert!(feesBpsGame <= 10000, ErrorCodes.FeesToHigh)
+        assert!(!isFixedTokenId || tokenIdGame == tokenId, ErrorCodes.TokenIdIncorrect)
 
         let timestamp = blockTimeStamp!()
-
+        
         // Require base entry payment
         assert!(payment > 0, ErrorCodes.InsufficientPayment)
-        let caller = callerAddress!()
-
+        let  mut caller = callerAddress!()
+        if caller == contractIdToAddress!(factoryId) {
+            caller = callerAddr
+        }
         transferTokenToSelf!(caller, tokenIdGame, payment)
 
 
@@ -62,6 +72,7 @@ Contract ChainReactionV3(
         tokenId = tokenIdGame
         durationMs = durationGameMs
         multiplierBps = multiplierGameBps
+        feesBps = feesBpsGame
         chainId = chainId + 1
         currentEntry = baseEntry
         lastPlayer = caller
@@ -71,20 +82,24 @@ Contract ChainReactionV3(
         playerCount = 1
         burnBps = burnRate
         burnedAmount = 0
+        decayPeriodMs = decayPeriodMsGame
         isActive = true
 
-        emit ChainStarted(chainId, lastEntryTimestamp)
-        emit PlayerJoined(chainId, lastPlayer, payment, pot, playerCount, 0)
+        emit ChainStarted(chainId, lastEntryTimestamp, feesBps, tokenId)
+        emit PlayerJoined(chainId, lastPlayer, payment, pot, playerCount, 0, tokenId)
 
         return chainId, lastEntryTimestamp, pot, playerCount
     }
 
     // Join existing chain
     @using(preapprovedAssets = true, updateFields = true, checkExternalCaller = false, assetsInContract = true)
-    pub fn joinChain(payment: U256) -> (U256, U256, U256, U256, U256) {
+    pub fn joinChain(callerAddr: Address, payment: U256) -> (U256, U256, U256, U256, U256) {
         // Verify chain is active
         assert!(isActive, ErrorCodes.ChainNotActive)
-        let caller = callerAddress!()
+        let mut caller = callerAddress!()
+        if caller == contractIdToAddress!(factoryId) {
+            caller = callerAddr
+        }
         
         // Check max players not reached
         //assert!(playerCount < maxPlayers, ErrorCodes.ChainFull)
@@ -122,23 +137,29 @@ Contract ChainReactionV3(
         endTimestamp = timestamp + totalDurationDecrease
         pot = pot + totalPayment
 
-        emit PlayerJoined(chainId, lastPlayer, totalPayment, pot, playerCount, amountToBurn)
+        emit PlayerJoined(chainId, lastPlayer, totalPayment, pot, playerCount, amountToBurn, tokenId)
 
         return chainId, totalPayment, pot, playerCount, amountToBurn
     }
 
     // End chain and pay winner (callable by anyone after timeout)
     @using(assetsInContract = true, updateFields = true, checkExternalCaller = false)
-    pub fn endChain() -> (U256, Address, U256, U256) {
+    pub fn endChain() -> (U256, Address, U256, U256, U256) {
 
         assert!(canEnd(), ErrorCodes.TooEarlyToEnd)
 
-        let totalAmount = boostAmount + pot 
+        let feesAmount = pot * feesBps / 10000
+        let totalAmount = boostAmount + (pot-feesAmount) //incentive not taken in consideration for fees
+    
 
         // Pay winner
         transferTokenFromSelf!(lastPlayer, tokenId, totalAmount)
 
-        emit ChainEnded(chainId, lastPlayer, totalAmount, burnedAmount)
+        if addrFees != nullContractAddress!() && feesAmount > 0 {
+            transferTokenFromSelf!(addrFees, tokenId, feesAmount)
+        }
+
+        emit ChainEnded(chainId, lastPlayer, totalAmount, burnedAmount, feesAmount)
 
         let burnedAmountRound = burnedAmount
         let totalAmountRound = totalAmount
@@ -151,9 +172,8 @@ Contract ChainReactionV3(
         playerCount = 0
         currentEntry = 0
         burnedAmount = 0
-        chainId = 0
 
-        return chainIdRound, lastPlayer, totalAmountRound, burnedAmountRound
+        return chainIdRound, lastPlayer, totalAmountRound, burnedAmountRound, feesAmount
   
     }
 
@@ -182,17 +202,31 @@ Contract ChainReactionV3(
         emit PotBoosted(caller, amount)
     }
 
-    // Calculate next entry price (view function)
+    // Calculate next entry price with optional time-based decay
     pub fn getNextEntryPrice() -> U256 {
         if (!isActive) {
             return baseEntry
         }
-       // return currentEntry + (currentEntry * multiplierBps / 10000)
-       return currentEntry + (currentEntry * multiplierBps / 10000)
+
+        let mut effectiveEntry = currentEntry
+
+        // Apply time-based decay toward baseEntry
+        if decayPeriodMs > 0 && currentEntry > baseEntry {
+            let elapsed = blockTimeStamp!() - lastEntryTimestamp
+            let excess = currentEntry - baseEntry
+            if elapsed >= decayPeriodMs {
+                effectiveEntry = baseEntry
+            } else {
+                effectiveEntry = currentEntry - (excess * elapsed / decayPeriodMs)
+            }
+        }
+
+        return effectiveEntry + (effectiveEntry * multiplierBps / 10000)
     }
 
     pub fn getFactoryId() -> ByteVec {
         return factoryId
     }
+
 
 }

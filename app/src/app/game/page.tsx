@@ -2,7 +2,7 @@
 
 import React, { useRef, useCallback, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ChainReaction, ChainReactionV1 } from 'my-contracts'
+import { ChainReactionV3, ChainReactionV1 } from 'my-contracts'
 import { GameBoard } from '@/components/GameBoard'
 import { gameConfig } from '@/services/utils' // ensure node provider is set
 
@@ -34,7 +34,7 @@ function GameContent() {
 
   const isV1 = gameConfig.v1Address === address
   const contractInstance = useMemo(
-    () => isV1 ? ChainReactionV1.at(address) : ChainReaction.at(address),
+    () => isV1 ? ChainReactionV1.at(address) : ChainReactionV3.at(address),
     [address, isV1]
   )
 

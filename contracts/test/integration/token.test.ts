@@ -44,7 +44,8 @@ describe('integration tests', () => {
         tokenId: ALPH_TOKEN_ID,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 
@@ -130,7 +131,8 @@ describe('integration tests', () => {
         tokenId: ALPH_TOKEN_ID,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 
@@ -233,7 +235,8 @@ describe('integration tests', () => {
         tokenId: tokenTest.tokenId,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 
@@ -350,7 +353,8 @@ describe('integration tests', () => {
         tokenId: ALPH_TOKEN_ID,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 
@@ -453,7 +457,8 @@ describe('integration tests', () => {
         tokenId: ALPH_TOKEN_ID,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 
@@ -625,7 +630,8 @@ describe('integration tests', () => {
         tokenId: tokenTest.tokenId,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 
@@ -817,7 +823,8 @@ describe('integration tests', () => {
         tokenId: ALPH_TOKEN_ID,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 

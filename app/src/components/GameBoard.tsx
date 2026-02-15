@@ -55,6 +55,7 @@ export const GameBoard: FC<{
   const [durationMinutes, setDurationMinutes] = useState(0)
   const [multiplierPct, setMultiplierPct] = useState(5)
   const [burnPct, setBurnPct] = useState(5)
+  const [decayMinutes, setDecayMinutes] = useState(0)
   const [baseEntry, setBaseEntry] = useState('0.1')
   const [incentiveAmount, setIncentiveAmount] = useState('1')
   const [selectedToken, setSelectedToken] = useState<TokenInfo>(ALPH_TOKEN)
@@ -113,15 +114,17 @@ export const GameBoard: FC<{
     }
   }, [account?.address, tokenIdsFromQuery])
 
-  // Pre-select token from last chain when game is inactive
+  // Pre-select token from last chain when game is inactive, or when token is fixed
   useEffect(() => {
     if (tokenListFromQuery) return
-    if (!gameState || gameState.isActive || !gameState.tokenId) return
+    if (!gameState || !gameState.tokenId) return
+    // Always pre-select when token is fixed, or when game is inactive (show last chain's token)
+    if (!gameState.isFixedTokenId && gameState.isActive) return
     resolveTokenInfo(gameState.tokenId).then(token => {
       setSelectedToken(token)
       setTokenList(prev => prev.some(t => t.id === token.id) ? prev : [...prev, token])
     })
-  }, [gameState?.tokenId, gameState?.isActive, tokenListFromQuery])
+  }, [gameState?.tokenId, gameState?.isActive, gameState?.isFixedTokenId, tokenListFromQuery])
 
   useEffect(() => {
     if (account?.address && gameState?.tokenId && gameState.isActive) {
@@ -230,6 +233,8 @@ export const GameBoard: FC<{
     const durationMs = (BigInt(durationHours) * 3600n + BigInt(durationMinutes) * 60n) * 1000n
     const multiplierBps = BigInt(multiplierPct) * 100n
     const burnRate = BigInt(burnPct) * 100n
+    const v3 = gameState?.isV3 ?? false
+    const decayPeriodMsVal = BigInt(decayMinutes) * 60n * 1000n
 
     try {
       if (canUseEmbedded) {
@@ -241,12 +246,14 @@ export const GameBoard: FC<{
           durationMs,
           multiplierBps,
           selectedToken.id,
-          burnRate
+          burnRate,
+          v3,
+          decayPeriodMsVal
         )
         const result = await requestParentSignTxParams(txParams)
         setOngoingTxId(result.txId)
       } else {
-        const result = await startChain(contractInstance, signer!, payment, durationMs, multiplierBps, selectedToken.id, burnRate)
+        const result = await startChain(contractInstance, signer!, payment, durationMs, multiplierBps, selectedToken.id, burnRate, v3, decayPeriodMsVal)
         setOngoingTxId(result.txId)
       }
     } catch (err) {
@@ -261,12 +268,13 @@ export const GameBoard: FC<{
     setTxError(undefined)
     try {
       const payment = gameState.nextEntryPrice
+      const v3 = gameState.isV3
       if (canUseEmbedded) {
-        const txParams = await buildJoinChainTxParams(embeddedAddress!, embeddedPublicKey!, contractInstance, payment, gameState.tokenId)
+        const txParams = await buildJoinChainTxParams(embeddedAddress!, embeddedPublicKey!, contractInstance, payment, gameState.tokenId, v3)
         const result = await requestParentSignTxParams(txParams)
         setOngoingTxId(result.txId)
       } else {
-        const result = await joinChain(contractInstance, signer!, payment, gameState.tokenId)
+        const result = await joinChain(contractInstance, signer!, payment, gameState.tokenId, v3)
         setOngoingTxId(result.txId)
       }
     } catch (err) {
@@ -456,6 +464,10 @@ export const GameBoard: FC<{
               multiplierBps={gameState.multiplierBps}
               burnedAmount={gameState.burnedAmount}
               burnBps={gameState.burnBps}
+              decayPeriodMs={gameState.decayPeriodMs}
+              currentEntry={gameState.currentEntry}
+              baseEntry={gameState.baseEntry}
+              lastEntryTimestamp={gameState.lastEntryTimestamp}
               currentUserAddress={ongoingTxId ? undefined : account?.address}
               tokenSymbol={activeToken.symbol}
               tokenDecimals={activeToken.decimals}
@@ -550,8 +562,11 @@ export const GameBoard: FC<{
               tokens={tokenList}
               selected={selectedToken}
               onChange={setSelectedToken}
-              disabled={tokenListFromQuery && tokenList.length === 1}
+              disabled={(tokenListFromQuery && tokenList.length === 1) || (gameState?.isFixedTokenId === true)}
             />
+            {gameState?.isFixedTokenId && (
+              <p className="text-[10px] text-muted -mt-3">Token is fixed for this game and cannot be changed</p>
+            )}
             <div className="flex flex-col gap-1">
               <label htmlFor="base-entry" className="text-[11px] text-label uppercase tracking-wider">
                 Entry price ({selectedToken.symbol})
@@ -636,6 +651,29 @@ export const GameBoard: FC<{
                 />
                 <span className="text-base font-bold text-burn-value min-w-[4ch] text-right">{burnPct}%</span>
               </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="decay" className="text-[11px] text-label uppercase tracking-wider">
+                Price decay (minutes)
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="decay"
+                  type="range"
+                  min={0}
+                  max={120}
+                  step={1}
+                  value={decayMinutes}
+                  onChange={(e) => setDecayMinutes(Number(e.target.value))}
+                  className="flex-1 accent-primary"
+                />
+                <span className="text-base font-bold text-primary min-w-[4ch] text-right">{decayMinutes}m</span>
+              </div>
+              <p className="text-[10px] text-muted">
+                {decayMinutes === 0
+                  ? 'No decay — price only increases'
+                  : `Price decays back to base entry over ${decayMinutes}m of inactivity`}
+              </p>
             </div>
           </div>
           {parseFloat(baseEntry) > 0 && (

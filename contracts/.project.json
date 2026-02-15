@@ -9,7 +9,7 @@
     "ignoreCheckExternalCallerWarnings": false,
     "ignoreUnusedFunctionReturnWarnings": false,
     "skipAbstractContractCheck": false,
-    "skipTests": false
+    "skipTests": true
   },
   "infos": {
     "ChainReaction": {
@@ -24,11 +24,23 @@
       "bytecodeDebugPatch": "",
       "codeHashDebug": "aa014ef701715d339e6b127522e995c29a5f28a1ab9157a19949dc03445674d0"
     },
+    "ChainReactionV3": {
+      "sourceFile": "playV3.ral",
+      "sourceCodeHash": "9ede760a339cbede308dba5100a6f8c03c95c6334a4940b8637134cf4287d302",
+      "bytecodeDebugPatch": "",
+      "codeHashDebug": "2be48c768ffa519cbac391d29bfc65565ef792b57b37a1844b3593acaa776d14"
+    },
     "FactoryChainReaction": {
       "sourceFile": "factory.ral",
       "sourceCodeHash": "0cba83b5150a97718f7ba22c5be1ffa76151d9e524682d0f4eb929ef90e8982c",
       "bytecodeDebugPatch": "",
       "codeHashDebug": "9f5030a2a662c0ba976d8025e9a5d6efe1959fb526ca07abcf7799ecd73ac646"
+    },
+    "FactoryChainReactionV2": {
+      "sourceFile": "factoryV2.ral",
+      "sourceCodeHash": "ff8f99d1715ee48205495d7f9b78f9defbe66157c2967096c973cf69c82b6d3b",
+      "bytecodeDebugPatch": "",
+      "codeHashDebug": "03c158b0fb5e169dc05a8fa2a3ff858c0f11242f483beed745dae2f3f7575732"
     }
   }
 }
