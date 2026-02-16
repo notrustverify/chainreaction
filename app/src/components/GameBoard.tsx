@@ -308,13 +308,14 @@ export const GameBoard: FC<{
     if ((!signer && !canUseEmbedded) || !gameState) { onConnectRequest(); return }
     setTxError(undefined)
     const amount = BigInt(Math.floor(parseFloat(incentiveAmount) * 10 ** activeToken.decimals))
+    const v3 = gameState.isV3
     try {
       if (canUseEmbedded) {
-        const txParams = await buildIncentivizeTxParams(embeddedAddress!, embeddedPublicKey!, contractInstance, amount, gameState.tokenId)
+        const txParams = await buildIncentivizeTxParams(embeddedAddress!, embeddedPublicKey!, contractInstance, amount, gameState.tokenId, v3)
         const result = await requestParentSignTxParams(txParams)
         setOngoingTxId(result.txId)
       } else {
-        const result = await incentivize(contractInstance, signer!, amount, gameState.tokenId)
+        const result = await incentivize(contractInstance, signer!, amount, gameState.tokenId, v3)
         setOngoingTxId(result.txId)
       }
     } catch (err) {

@@ -1,16 +1,35 @@
 'use client'
 
-import React, { useCallback, useMemo, Suspense } from 'react'
+import React, { useCallback, useMemo, useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ChainReactionV3, ChainReactionV1 } from 'my-contracts'
+import { ChainReaction, ChainReactionV3 } from 'my-contracts'
 import { GameBoard } from '@/components/GameBoard'
-import { gameConfig } from '@/services/utils' // ensure node provider is set
+import { GameContractInstance, fetchRawGameState } from '@/services/game.service'
+import '@/services/utils' // ensure node provider is set
 
 function parseTokenIdsFromQuery(searchParams: URLSearchParams): string[] | null {
   const raw = searchParams.get('tokens')
   if (!raw || typeof raw !== 'string') return null
   const ids = raw.split(',').map(s => s.trim()).filter(Boolean)
   return ids.length > 0 ? ids : null
+}
+
+function useDetectContractInstance(address: string | null): GameContractInstance | null {
+  const [instance, setInstance] = useState<GameContractInstance | null>(null)
+
+  useEffect(() => {
+    if (!address) return
+
+    // Detect contract version from raw state field counts
+    fetchRawGameState(address).then((state) => {
+      setInstance(state.isV3 ? ChainReactionV3.at(address) : ChainReaction.at(address))
+    }).catch(() => {
+      // Default to V3 if detection fails
+      setInstance(ChainReactionV3.at(address))
+    })
+  }, [address])
+
+  return instance
 }
 
 function GameContent() {
@@ -32,11 +51,15 @@ function GameContent() {
     )
   }
 
-  const isV1 = gameConfig.v1Address === address
-  const contractInstance = useMemo(
-    () => isV1 ? ChainReactionV1.at(address) : ChainReactionV3.at(address),
-    [address, isV1]
-  )
+  const contractInstance = useDetectContractInstance(address)
+
+  if (!contractInstance) {
+    return (
+      <main className="flex-1 flex flex-col items-center justify-center w-full">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </main>
+    )
+  }
 
   return (
       <main className="flex-1 flex flex-col items-center justify-center w-full">
@@ -44,7 +67,6 @@ function GameContent() {
           contractInstance={contractInstance}
           onConnectRequest={openConnect}
           tokenIdsFromQuery={tokenIdsFromQuery}
-          isV1={isV1}
         />
       </main>
   )

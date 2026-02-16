@@ -1,15 +1,16 @@
 import { NetworkId, web3 } from "@alephium/web3";
 import { loadDeployments } from "my-contracts/deployments"
-import { FactoryChainReactionV2, ChainReactionV1 } from "my-contracts"
-import type { FactoryChainReactionV2Instance, ChainReactionV1Instance } from "my-contracts"
+import { FactoryChainReactionV2, ChainReactionV3 } from "my-contracts"
+import type { FactoryChainReactionV2Instance, FactoryChainReactionInstance, ChainReactionV3Instance } from "my-contracts"
 
 export interface GameConfig {
   network: NetworkId
   groupIndex: number
   factoryAddress: string
   factoryInstance: FactoryChainReactionV2Instance
-  v1Address: string | undefined
-  getV1Instance: () => ChainReactionV1Instance | null
+  oldFactoryInstance: FactoryChainReactionInstance | null
+  featuredAddress: string | undefined
+  getFeaturedInstance: () => ChainReactionV3Instance | null
 }
 
 function getNetwork(): NetworkId {
@@ -32,17 +33,24 @@ function getGameConfig(): GameConfig {
   web3.setCurrentNodeProvider(getNodeUrl(network))
   const deployments = loadDeployments(network)
 
-  // Use FactoryChainReactionV2 if deployed, fall back to V1 address with V2 type
+  // FactoryChainReactionV2 is the current factory
   const v2Deployment = deployments.contracts.FactoryChainReactionV2
   const factory = v2Deployment
     ? v2Deployment.contractInstance
     : FactoryChainReactionV2.at(deployments.contracts.FactoryChainReaction.contractInstance.address)
 
   const groupIndex = factory.groupIndex
-  const v1Address = process.env.NEXT_PUBLIC_CHAINREACTIONV1 || undefined
-  const getV1Instance = (): ChainReactionV1Instance | null =>
-    v1Address ? ChainReactionV1.at(v1Address) : null
-  return { network, groupIndex, factoryAddress: factory.address, factoryInstance: factory, v1Address, getV1Instance }
+  const featuredAddress = process.env.NEXT_PUBLIC_FEATURED_GAME || undefined
+  const getFeaturedInstance = (): ChainReactionV3Instance | null =>
+    featuredAddress ? ChainReactionV3.at(featuredAddress) : null
+
+  // FactoryChainReaction (V1) is the old factory — load its games until they finish
+  const oldFactoryDeployment = deployments.contracts.FactoryChainReaction
+  const oldFactoryInstance = oldFactoryDeployment
+    ? oldFactoryDeployment.contractInstance
+    : null
+
+  return { network, groupIndex, factoryAddress: factory.address, factoryInstance: factory, oldFactoryInstance, featuredAddress, getFeaturedInstance }
 }
 
 export const gameConfig = getGameConfig()

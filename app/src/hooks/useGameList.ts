@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { addressFromContractId } from '@alephium/web3'
-import { FactoryChainReactionV2Instance, ChainReactionV3 } from 'my-contracts'
+import { FactoryChainReactionV2Instance, FactoryChainReactionInstance, ChainReaction, ChainReactionV3 } from 'my-contracts'
 import { GameContractInstance, fetchGameState, GameState } from '@/services/game.service'
 import { TokenInfo, ALPH_TOKEN, resolveTokenInfo } from '@/services/tokenList'
 
@@ -13,14 +13,70 @@ export interface GameListItem {
   instance: GameContractInstance
   state: GameState | null
   tokenInfo: TokenInfo
+  fromOldFactory?: boolean
 }
 
-export function useGameList(factory: FactoryChainReactionV2Instance) {
+function useOldFactoryEvents(
+  oldFactory: FactoryChainReactionInstance | null | undefined,
+  gamesRef: React.MutableRefObject<Map<string, GameListItem>>,
+  setVersion: React.Dispatch<React.SetStateAction<number>>,
+) {
+  useEffect(() => {
+    if (!oldFactory) return
+    let cancelled = false
+    const seen = new Set<string>()
+
+    const sub = oldFactory.subscribeNewGameCreatedEvent({
+      pollingInterval: 4000,
+      messageCallback: async (event) => {
+        if (cancelled) return
+
+        const eventKey = `${event.txId}:${event.eventIndex}`
+        if (seen.has(eventKey)) return
+        seen.add(eventKey)
+
+        const contractId = event.fields.contractId
+        const gameId = Number(event.fields.gameId)
+        const address = addressFromContractId(contractId)
+        const instance = ChainReaction.at(address)
+
+        let state: GameState | null = null
+        let tokenInfo: TokenInfo = ALPH_TOKEN
+        try {
+          state = await fetchGameState(instance)
+          if (state) tokenInfo = await resolveTokenInfo(state.tokenId)
+        } catch {
+          // Game contract may not be ready yet
+        }
+
+        // Only show active old factory games — skip waiting/finished ones
+        if (!cancelled && state && state.isActive) {
+          gamesRef.current.set(contractId, { contractId, address, gameId, instance, state, tokenInfo, fromOldFactory: true })
+          setVersion(v => v + 1)
+        }
+      },
+      errorCallback: async () => {
+        // Silently ignore old factory errors
+      },
+    }, 0)
+
+    return () => {
+      cancelled = true
+      sub.unsubscribe()
+    }
+  }, [oldFactory, gamesRef, setVersion])
+}
+
+export function useGameList(
+  factory: FactoryChainReactionV2Instance,
+  oldFactory?: FactoryChainReactionInstance | null,
+) {
   const gamesRef = useRef<Map<string, GameListItem>>(new Map())
   const [version, setVersion] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Subscribe to new factory events
   useEffect(() => {
     let cancelled = false
     gamesRef.current = new Map()
@@ -75,6 +131,9 @@ export function useGameList(factory: FactoryChainReactionV2Instance) {
     }
   }, [factory])
 
+  // Subscribe to old factory (FactoryChainReaction) events
+  useOldFactoryEvents(oldFactory, gamesRef, setVersion)
+
   // Refresh game states periodically
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -83,6 +142,14 @@ export function useGameList(factory: FactoryChainReactionV2Instance) {
         try {
           const state = await fetchGameState(game.instance)
           const tokenInfo = state ? await resolveTokenInfo(state.tokenId) : game.tokenInfo
+
+          // Remove old factory games that are no longer active
+          if (game.fromOldFactory && (!state || !state.isActive)) {
+            gamesRef.current.delete(key)
+            updated = true
+            continue
+          }
+
           gamesRef.current.set(key, { ...game, state, tokenInfo })
           updated = true
         } catch {

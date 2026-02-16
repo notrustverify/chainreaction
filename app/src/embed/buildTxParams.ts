@@ -76,10 +76,11 @@ export async function buildIncentivizeTxParams(
   publicKey: string,
   contract: GameContractInstance,
   amount: bigint,
-  tokenId: string
+  tokenId: string,
+  isV3: boolean = false,
 ): Promise<SerializedSignExecuteScriptTxParams> {
   return buildParams(signerAddress, publicKey, (signer) =>
-    incentivize(contract, signer, amount, tokenId)
+    incentivize(contract, signer, amount, tokenId, isV3)
   )
 }
 

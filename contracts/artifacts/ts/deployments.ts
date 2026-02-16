@@ -26,8 +26,8 @@ export type Deployments = {
   contracts: {
     ChainReaction: DeployContractExecutionResult<ChainReactionInstance>;
     FactoryChainReaction: DeployContractExecutionResult<FactoryChainReactionInstance>;
-    ChainReactionV3?: DeployContractExecutionResult<ChainReactionV3Instance>;
-    FactoryChainReactionV2?: DeployContractExecutionResult<FactoryChainReactionV2Instance>;
+    ChainReactionV3: DeployContractExecutionResult<ChainReactionV3Instance>;
+    FactoryChainReactionV2: DeployContractExecutionResult<FactoryChainReactionV2Instance>;
   };
 };
 
@@ -45,24 +45,18 @@ function toDeployments(json: any): Deployments {
         json.contracts["FactoryChainReaction"].contractInstance.address
       ),
     },
-    ChainReactionV3:
-      json.contracts["ChainReactionV3"] === undefined
-        ? undefined
-        : {
-            ...json.contracts["ChainReactionV3"],
-            contractInstance: ChainReactionV3.at(
-              json.contracts["ChainReactionV3"].contractInstance.address
-            ),
-          },
-    FactoryChainReactionV2:
-      json.contracts["FactoryChainReactionV2"] === undefined
-        ? undefined
-        : {
-            ...json.contracts["FactoryChainReactionV2"],
-            contractInstance: FactoryChainReactionV2.at(
-              json.contracts["FactoryChainReactionV2"].contractInstance.address
-            ),
-          },
+    ChainReactionV3: {
+      ...json.contracts["ChainReactionV3"],
+      contractInstance: ChainReactionV3.at(
+        json.contracts["ChainReactionV3"].contractInstance.address
+      ),
+    },
+    FactoryChainReactionV2: {
+      ...json.contracts["FactoryChainReactionV2"],
+      contractInstance: FactoryChainReactionV2.at(
+        json.contracts["FactoryChainReactionV2"].contractInstance.address
+      ),
+    },
   };
   return {
     ...json,

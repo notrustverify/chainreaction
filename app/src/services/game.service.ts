@@ -85,7 +85,7 @@ export async function fetchGameState(contract: GameContractInstance): Promise<Ga
 }
 
 // Fetch state via raw node API, auto-detecting V1 vs V3 from field counts
-// V1: 2 immutable, 15 mutable
+// V1: 3 immutable, 15 mutable
 // V2: 3 immutable, 15 mutable (handled by typed fetchState above)
 // V3: 5 immutable, 17 mutable
 export async function fetchRawGameState(address: string): Promise<GameState> {
@@ -155,7 +155,7 @@ function parseV3RawState(mut: any[], imm: any[]): GameState {
 // V1 mutable fields: chainId, currentEntry, lastPlayer, lastEntryTimestamp,
 // pot, boostAmount, playerCount, isActive, baseEntry, endTimestamp,
 // durationMs, multiplierBps, tokenId, burnBps, burnedAmount
-// V1 immutable fields: durationDecreaseMs, minDuration
+// V1 immutable fields: factoryId, durationDecreaseMs, minDuration
 function parseV1RawState(mut: any[], imm: any[]): GameState {
   const chainId = BigInt(mut[0].value as string)
   const currentEntry = BigInt(mut[1].value as string)
@@ -173,8 +173,8 @@ function parseV1RawState(mut: any[], imm: any[]): GameState {
   const burnBps = BigInt(mut[13].value as string)
   const burnedAmount = BigInt(mut[14].value as string)
 
-  const durationDecreaseMs = BigInt(imm[0].value as string)
-  const minDuration = BigInt(imm[1].value as string)
+  const durationDecreaseMs = BigInt(imm[1].value as string)
+  const minDuration = BigInt(imm[2].value as string)
 
   const nextEntryPrice = !isActive ? baseEntry : currentEntry + (currentEntry * multiplierBps / 10000n)
   const canEnd = isActive && BigInt(Date.now()) >= endTimestamp
@@ -279,8 +279,19 @@ export async function incentivize(
   contract: GameContractInstance,
   signer: SignerProvider,
   amount: bigint,
-  tokenId: string
+  tokenId: string,
+  isV3: boolean = false,
 ): Promise<{ txId: string }> {
+  if (isV3) {
+    const v3 = ChainReactionV3.at(contract.address)
+    const result = await v3.transact.incentive({
+      signer,
+      args: { callerAddr: contract.address, amount },
+      ...buildTxParams(tokenId, amount),
+    })
+    return { txId: result.txId }
+  }
+
   const result = await contract.transact.incentive({
     signer,
     args: { amount },
