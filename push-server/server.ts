@@ -118,6 +118,33 @@ interface ContractState {
   lastPlayer: string
   isActive: boolean
   endTimestamp: number
+  pot: bigint
+  boostAmount: bigint
+  playerCount: number
+  tokenId: string
+  version: 'v1v2' | 'v3'
+}
+
+// --- Token formatting ---
+
+function isAlphToken(tokenId: string): boolean {
+  return !tokenId || /^0+$/.test(tokenId)
+}
+
+function formatAmount(raw: bigint, decimals: number = 18): string {
+  if (raw === 0n) return '0'
+  const divisor = 10n ** BigInt(decimals)
+  const whole = raw / divisor
+  const frac = raw % divisor
+  const fracStr = frac.toString().padStart(decimals, '0').slice(0, 2)
+  return fracStr === '00' ? `${whole}` : `${whole}.${fracStr}`
+}
+
+function formatPrize(state: ContractState): string {
+  const total = state.pot + state.boostAmount
+  const amount = formatAmount(total)
+  const symbol = isAlphToken(state.tokenId) ? 'ALPH' : 'tokens'
+  return `${amount} ${symbol}`
 }
 
 interface SubRow {
@@ -143,13 +170,29 @@ async function fetchContractState(contractAddress: string): Promise<ContractStat
     const res = await fetch(`${NODE_URL}/contracts/${contractAddress}/state`)
     if (!res.ok) return null
 
-    const state = await res.json() as { mutFields: Array<{ value: unknown }> }
+    const state = await res.json() as {
+      mutFields: Array<{ value: unknown }>
+      immFields: Array<{ value: unknown }>
+    }
     const mut = state.mutFields
+
+    // Shared field layout across V1/V2/V3:
+    // mut[0]=chainId, mut[1]=currentEntry, mut[2]=lastPlayer, mut[3]=lastEntryTimestamp,
+    // mut[4]=pot, mut[5]=boostAmount, mut[6]=playerCount, mut[7]=isActive,
+    // mut[8]=baseEntry, mut[9]=endTimestamp, mut[10]=durationMs, mut[11]=multiplierBps,
+    // mut[12]=tokenId, mut[13]=burnBps, mut[14]=burnedAmount
+    // V3 adds: mut[15]=feesBps, mut[16]=decayPeriodMs
+    const version = (mut.length >= 17) ? 'v3' as const : 'v1v2' as const
 
     return {
       lastPlayer: mut[2].value as string,
       isActive: mut[7].value as boolean,
       endTimestamp: Number(mut[9].value),
+      pot: BigInt(mut[4].value as string),
+      boostAmount: BigInt(mut[5].value as string),
+      playerCount: Number(mut[6].value as string),
+      tokenId: mut[12].value as string,
+      version,
     }
   } catch (e) {
     console.error(`[poll] Failed to fetch ${contractAddress}:`, e)
@@ -190,12 +233,12 @@ async function pollContracts() {
 
     // Detect new game started (was inactive, now active)
     if (!wasActive && state.isActive) {
-      console.log(`[poll] New game started on ${contractAddress}`)
+      console.log(`[poll] New game started on ${contractAddress} (${state.version})`)
       stmtResetFlags.run({ contractAddress })
       for (const sub of subs) {
         const result = await sendPush(sub, {
           title: 'New game started!',
-          body: 'A new Chain Reaction round has begun. Join now!',
+          body: `A new Chain Reaction round has begun. Prize pool: ${formatPrize(state)}. Join now!`,
         })
         if (result === 'expired') stmtDeleteById.run({ id: sub.id })
       }
@@ -218,7 +261,7 @@ async function pollContracts() {
         if (wasLastPlayer && !isUserLastPlayer) {
           const result = await sendPush(sub, {
             title: "You've been overtaken!",
-            body: 'Someone just took the lead in Chain Reaction. Play now to reclaim it!',
+            body: `Someone just took the lead! Pot: ${formatPrize(state)} with ${state.playerCount} player${state.playerCount !== 1 ? 's' : ''}. Play to reclaim it!`,
           })
           if (result === 'expired') { stmtDeleteById.run({ id: sub.id }); continue }
         }
@@ -234,7 +277,7 @@ async function pollContracts() {
         changed = true
         const result = await sendPush(sub, {
           title: '5 minutes left!',
-          body: 'Chain Reaction is ending soon. Make your move!',
+          body: `Chain Reaction ending soon! Pot: ${formatPrize(state)}. Make your move!`,
         })
         if (result === 'expired') { stmtDeleteById.run({ id: sub.id }); continue }
       }
@@ -244,7 +287,7 @@ async function pollContracts() {
         changed = true
         const result = await sendPush(sub, {
           title: '1 minute left!',
-          body: 'Chain Reaction is about to end! Last chance to play!',
+          body: `Last chance! Pot: ${formatPrize(state)}. Play now!`,
         })
         if (result === 'expired') { stmtDeleteById.run({ id: sub.id }); continue }
       }

@@ -241,7 +241,7 @@ export const CreateGame: FC<{
               id="decrease"
               type="number"
               min={1}
-              max={3600}
+              max={43200}
               value={decreaseSeconds}
               onChange={(e) => setDecreaseSeconds(Math.max(1, Number(e.target.value)))}
               disabled={busy}
@@ -258,7 +258,7 @@ export const CreateGame: FC<{
               id="minDuration"
               type="number"
               min={1}
-              max={3600}
+              max={43200}
               value={minDurationSeconds}
               onChange={(e) => setMinDurationSeconds(Math.max(1, Number(e.target.value)))}
               disabled={busy}

@@ -646,9 +646,9 @@ export const GameBoard: FC<{
                     id="hours"
                     type="number"
                     min={0}
-                    max={3}
+                    max={12}
                     value={durationHours}
-                    onChange={(e) => setDurationHours(Math.max(0, Math.min(3, Number(e.target.value))))}
+                    onChange={(e) => setDurationHours(Math.max(0, Math.min(12, Number(e.target.value))))}
                     className="w-full px-3 py-2 text-center text-base rounded-lg border border-input-border bg-input-bg text-input-fg focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 focus:border-input-focus-ring"
                   />
                 </div>
