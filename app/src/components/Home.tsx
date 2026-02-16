@@ -8,28 +8,29 @@ import { useGameList } from '@/hooks/useGameList'
 import { gameConfig } from '@/services/utils'
 
 export default function Home() {
-  const connectRef = useRef<HTMLDivElement>(null)
   const gamesRef = useRef<HTMLDivElement>(null)
-  const { games, isLoading, error } = useGameList(gameConfig.factoryInstance)
+  const { games, isLoading, error } = useGameList(gameConfig.factoryInstance, gameConfig.oldFactoryInstance)
 
   const openConnect = useCallback(() => {
-    const btn = connectRef.current?.querySelector('button')
+    // Click the AlephiumConnectButton rendered in the NavBar
+    const btn = document.querySelector('.alephium-connect-button') as HTMLButtonElement
+      ?? document.querySelector('nav button') as HTMLButtonElement
     btn?.click()
   }, [])
 
-  const v1Instance = useMemo(() => gameConfig.getV1Instance(), [])
+  const featuredInstance = useMemo(() => gameConfig.getFeaturedInstance(), [])
 
   const scrollToGames = () => {
     gamesRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   return (
-    <> 
+    <>
       <main className="flex-1 flex flex-col items-center w-full max-w-6xl px-4 py-8 gap-5">
-        
 
-      {v1Instance && (
-          <GameBoard contractInstance={v1Instance} onConnectRequest={openConnect} onBrowseGames={scrollToGames} />
+
+      {featuredInstance && (
+          <GameBoard contractInstance={featuredInstance} onConnectRequest={openConnect} onBrowseGames={scrollToGames} />
         )}
 
         <h1 className="text-2xl font-bold text-page-heading">All Games</h1>

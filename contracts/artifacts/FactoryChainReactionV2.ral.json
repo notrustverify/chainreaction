@@ -1,0 +1,238 @@
+{
+  "version": "v4.3.0",
+  "name": "FactoryChainReactionV2",
+  "bytecode": "0205405440a640e1410a413101030509014033d35413ea74b41705b116001601160216031305640c0cca0c0c0c0c040c0c0c0c16040c0c0c0c131164170717061605d1a2ce0016061607af1708a0000d2aa100051608a00016031604611608020103080d004028d3c25752a7b41708160816021601a31608160116031604160216051606160713081016000100170c170b170a17090616001609160a1606160273071600160916081601160b160c0c16027601030309001cd361240913b41703160316021601a3160316010e111600010117081707170617051704071600160416031605160616071608160276010301060012d3ad29aabe0c1116000102170517041703170217010816001601160216031604160574010303040012d32ee01165b41703160316021601a3160316010e0c160001050a16001603160160",
+  "codeHash": "74aedc46a5e29dfb413873ea10a2f8c89ae78bd1c8757a587631331fe6e5faa2",
+  "fieldsSig": {
+    "names": [
+      "playContractTemplateId",
+      "numberGames"
+    ],
+    "types": [
+      "ByteVec",
+      "U256"
+    ],
+    "isMutable": [
+      false,
+      true
+    ]
+  },
+  "eventsSig": [
+    {
+      "name": "NewGameCreated",
+      "fieldNames": [
+        "contractId",
+        "gameId",
+        "isFixedTokenId",
+        "tokenId"
+      ],
+      "fieldTypes": [
+        "ByteVec",
+        "U256",
+        "Bool",
+        "ByteVec"
+      ]
+    },
+    {
+      "name": "ChainStarted",
+      "fieldNames": [
+        "gameContractId",
+        "chainId",
+        "startBlock",
+        "feesBps",
+        "tokenId"
+      ],
+      "fieldTypes": [
+        "ChainReactionV3",
+        "U256",
+        "U256",
+        "U256",
+        "ByteVec"
+      ]
+    },
+    {
+      "name": "PlayerJoined",
+      "fieldNames": [
+        "gameContractId",
+        "chainId",
+        "player",
+        "entryFee",
+        "newPot",
+        "position",
+        "amountBurned",
+        "tokenId"
+      ],
+      "fieldTypes": [
+        "ChainReactionV3",
+        "U256",
+        "Address",
+        "U256",
+        "U256",
+        "U256",
+        "U256",
+        "ByteVec"
+      ]
+    },
+    {
+      "name": "ChainEnded",
+      "fieldNames": [
+        "gameContractId",
+        "chainId",
+        "winner",
+        "payout",
+        "totalBurned",
+        "feesAmount"
+      ],
+      "fieldTypes": [
+        "ChainReactionV3",
+        "U256",
+        "Address",
+        "U256",
+        "U256",
+        "U256"
+      ]
+    },
+    {
+      "name": "ChainTimeout",
+      "fieldNames": [
+        "gameContractId",
+        "chainId",
+        "player"
+      ],
+      "fieldTypes": [
+        "ChainReactionV3",
+        "U256",
+        "Address"
+      ]
+    },
+    {
+      "name": "PotBoosted",
+      "fieldNames": [
+        "gameContractId",
+        "caller",
+        "amount"
+      ],
+      "fieldTypes": [
+        "ChainReactionV3",
+        "Address",
+        "U256"
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "createNewGame",
+      "paramNames": [
+        "durationDecreaseMsGame",
+        "minDurationGame",
+        "addrFees",
+        "isFixedTokenId",
+        "tokenId"
+      ],
+      "paramTypes": [
+        "U256",
+        "U256",
+        "Address",
+        "Bool",
+        "ByteVec"
+      ],
+      "paramIsMutable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "returnTypes": [
+        "ByteVec"
+      ]
+    },
+    {
+      "name": "startChain",
+      "paramNames": [
+        "gameContractId",
+        "payment",
+        "tokenId",
+        "durationGameMs",
+        "multiplierGameBps",
+        "burnRate",
+        "feesBps",
+        "decayPeriodMs"
+      ],
+      "paramTypes": [
+        "ChainReactionV3",
+        "U256",
+        "ByteVec",
+        "U256",
+        "U256",
+        "U256",
+        "U256",
+        "U256"
+      ],
+      "paramIsMutable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "returnTypes": []
+    },
+    {
+      "name": "joinChain",
+      "paramNames": [
+        "gameContractId",
+        "payment",
+        "tokenId"
+      ],
+      "paramTypes": [
+        "ChainReactionV3",
+        "U256",
+        "ByteVec"
+      ],
+      "paramIsMutable": [
+        false,
+        false,
+        false
+      ],
+      "returnTypes": []
+    },
+    {
+      "name": "endChain",
+      "paramNames": [
+        "gameContractId"
+      ],
+      "paramTypes": [
+        "ChainReactionV3"
+      ],
+      "paramIsMutable": [
+        false
+      ],
+      "returnTypes": []
+    },
+    {
+      "name": "incentive",
+      "paramNames": [
+        "gameContractId",
+        "amount",
+        "tokenId"
+      ],
+      "paramTypes": [
+        "ChainReactionV3",
+        "U256",
+        "ByteVec"
+      ],
+      "paramIsMutable": [
+        false,
+        false,
+        false
+      ],
+      "returnTypes": []
+    }
+  ],
+  "constants": [],
+  "enums": []
+}

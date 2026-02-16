@@ -12,6 +12,10 @@ import {
   ChainReactionInstance,
   FactoryChainReaction,
   FactoryChainReactionInstance,
+  ChainReactionV3,
+  ChainReactionV3Instance,
+  FactoryChainReactionV2,
+  FactoryChainReactionV2Instance,
 } from ".";
 import { default as mainnetDeployments } from "../../deployments/.deployments.mainnet.json";
 import { default as testnetDeployments } from "../../deployments/.deployments.testnet.json";
@@ -22,6 +26,8 @@ export type Deployments = {
   contracts: {
     ChainReaction: DeployContractExecutionResult<ChainReactionInstance>;
     FactoryChainReaction: DeployContractExecutionResult<FactoryChainReactionInstance>;
+    ChainReactionV3: DeployContractExecutionResult<ChainReactionV3Instance>;
+    FactoryChainReactionV2: DeployContractExecutionResult<FactoryChainReactionV2Instance>;
   };
 };
 
@@ -37,6 +43,18 @@ function toDeployments(json: any): Deployments {
       ...json.contracts["FactoryChainReaction"],
       contractInstance: FactoryChainReaction.at(
         json.contracts["FactoryChainReaction"].contractInstance.address
+      ),
+    },
+    ChainReactionV3: {
+      ...json.contracts["ChainReactionV3"],
+      contractInstance: ChainReactionV3.at(
+        json.contracts["ChainReactionV3"].contractInstance.address
+      ),
+    },
+    FactoryChainReactionV2: {
+      ...json.contracts["FactoryChainReactionV2"],
+      contractInstance: FactoryChainReactionV2.at(
+        json.contracts["FactoryChainReactionV2"].contractInstance.address
       ),
     },
   };

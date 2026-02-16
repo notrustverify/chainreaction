@@ -4,6 +4,8 @@
 
 export * from "./ChainReaction";
 export * from "./ChainReactionV1";
+export * from "./ChainReactionV3";
 export * from "./FactoryChainReaction";
+export * from "./FactoryChainReactionV2";
 export * from "./contracts";
 export * from "./scripts";

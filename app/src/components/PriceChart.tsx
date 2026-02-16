@@ -107,7 +107,7 @@ export const PriceChart: FC<PriceChartProps> = ({ baseEntry, multiplierBps, play
       }
     }
 
-    // Active game mode: 10 past + 40 future
+    // Active game mode: same style as preview, with current position highlighted
     const totalPlayers = pc + 40
     const allPrices = computePrices(baseEntry, multiplierBps, totalPlayers)
 
@@ -121,50 +121,39 @@ export const PriceChart: FC<PriceChartProps> = ({ baseEntry, multiplierBps, play
     startIdxRef.current = startIdx
     const endIdx = Math.min(totalPlayers, pc + 40)
     const slice = allPrices.slice(startIdx, endIdx)
-
-    const labels = slice.map((_, i) => `#${startIdx + i + 1}`)
     const nextLocalIdx = pc - startIdx
 
-    const pastData = slice.map((p, i) => i <= nextLocalIdx ? Number(p) / 10 ** tokenDecimals : null)
-    const futureData = slice.map((p, i) => i >= nextLocalIdx ? Number(p) / 10 ** tokenDecimals : null)
-
-    const pointColors = slice.map((_, i) => {
-      if (i === nextLocalIdx) return colors.current
-      if (i < nextLocalIdx) return colors.past
-      return colors.future
+    const labels = slice.map((_, i) => {
+      const num = startIdx + i + 1
+      if (num === pc + 1) return `#${num}`
+      if (PREVIEW_MILESTONES.has(num)) return `#${num}`
+      return ''
     })
 
-    const pointRadii = slice.map((_, i) => i === nextLocalIdx ? 6 : 3)
+    const values = slice.map(p => Number(p) / 10 ** tokenDecimals)
+
+    const pointColors = slice.map((_, i) =>
+      i === nextLocalIdx ? colors.current : PREVIEW_MILESTONES.has(startIdx + i + 1) ? colors.milestone : 'transparent'
+    )
+    const pointRadii = slice.map((_, i) =>
+      i === nextLocalIdx ? 6 : PREVIEW_MILESTONES.has(startIdx + i + 1) ? 4 : 0
+    )
 
     return {
       labels,
       datasets: [
         {
-          label: 'Past',
-          data: pastData,
-          borderColor: colors.past,
-          backgroundColor: withAlpha(colors.past, 0.1),
-          pointBackgroundColor: pointColors,
-          pointRadius: pointRadii,
-          pointHoverRadius: 6,
-          borderWidth: 2,
-          fill: true,
-          tension: 0.3,
-          spanGaps: false,
-        },
-        {
-          label: 'Future',
-          data: futureData,
+          label: 'Price',
+          data: values,
           borderColor: colors.future,
           borderDash: [4, 4],
           backgroundColor: withAlpha(colors.future, 0.08),
           pointBackgroundColor: pointColors,
           pointRadius: pointRadii,
-          pointHoverRadius: 6,
+          pointHoverRadius: 4,
           borderWidth: 2,
           fill: true,
           tension: 0.3,
-          spanGaps: false,
         },
       ],
     }
@@ -214,9 +203,8 @@ export const PriceChart: FC<PriceChartProps> = ({ baseEntry, multiplierBps, play
           ticks: {
             font: { size: 9 },
             color: colors.tick,
-            maxRotation: preview ? 0 : 45,
-            autoSkip: !preview,
-            maxTicksLimit: preview ? undefined : 15,
+            maxRotation: 0,
+            autoSkip: false,
           },
         },
         y: {
@@ -229,10 +217,10 @@ export const PriceChart: FC<PriceChartProps> = ({ baseEntry, multiplierBps, play
         },
       },
     }
-  }, [tokenDecimals, tokenSymbol, preview])
+  }, [tokenDecimals, tokenSymbol])
 
   return (
-    <div className={preview ? 'w-full flex-1 min-h-[300px]' : 'w-full aspect-[2/1] min-h-[180px] max-h-[300px]'}>
+    <div className="w-full flex-1 min-h-[300px]">
       <Line data={chartData} options={options} />
     </div>
   )

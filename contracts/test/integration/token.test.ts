@@ -44,7 +44,8 @@ describe('integration tests', () => {
         tokenId: ALPH_TOKEN_ID,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 
@@ -130,7 +131,8 @@ describe('integration tests', () => {
         tokenId: ALPH_TOKEN_ID,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 
@@ -233,7 +235,8 @@ describe('integration tests', () => {
         tokenId: tokenTest.tokenId,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 
@@ -350,7 +353,8 @@ describe('integration tests', () => {
         tokenId: ALPH_TOKEN_ID,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 
@@ -453,7 +457,8 @@ describe('integration tests', () => {
         tokenId: ALPH_TOKEN_ID,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 
@@ -604,7 +609,7 @@ describe('integration tests', () => {
     const signer = await testNodeWallet()
 
     const tokenTest = await mintToken((await signer.getSelectedAccount()).address,1000000n)
-    await transferTokenTo(minters[0].address,tokenTest.tokenId, 100n)
+    await transferTokenTo(minters[0].address,tokenTest.tokenId, 50000n)
 
     let now = BigInt(Date.now())
     const deployed = await ChainReaction.deploy(signer, {
@@ -625,7 +630,8 @@ describe('integration tests', () => {
         tokenId: tokenTest.tokenId,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 
@@ -642,7 +648,7 @@ describe('integration tests', () => {
 
     await game.transact.startChain({
       args: {
-        payment: 1n,
+        payment: 100n,
         durationGameMs: 500n,
         multiplierGameBps: 1000n,
         tokenIdGame: tokenTest.tokenId,
@@ -652,22 +658,22 @@ describe('integration tests', () => {
       attoAlphAmount: DUST_AMOUNT,
       tokens: [{
         id: tokenTest.tokenId,
-        amount: 1n
+        amount: 100n
       }]
     })
 
 
     let state = await game.fetchState()
 
-    expect(state.fields.pot).toEqual(1n)
+    expect(state.fields.pot).toEqual(100n)
     expect(state.asset.alphAmount).toEqual(MINIMAL_CONTRACT_DEPOSIT)
 
 
     let nextPayment = (await game.view.getNextEntryPrice()).returns
-    expect(nextPayment).toEqual(1n)
+    expect(nextPayment).toEqual(110n)
 
     for (let index = 1; index < 6; index++) {
-      await transferTokenTo(minters[index].address, tokenTest.tokenId,5n)
+      await transferTokenTo(minters[index].address, tokenTest.tokenId,500n)
 
       const payment = (await game.view.getNextEntryPrice()).returns
       const canEnd = (await game.view.canEnd()).returns
@@ -717,7 +723,7 @@ describe('integration tests', () => {
 
     await game.transact.startChain({
       args: {
-        payment: 1n,
+        payment: 100n,
         durationGameMs: 500n,
         multiplierGameBps: 1000n,
         tokenIdGame: tokenTest.tokenId,
@@ -727,19 +733,19 @@ describe('integration tests', () => {
       attoAlphAmount: DUST_AMOUNT,
       tokens: [{
         id: tokenTest.tokenId,
-        amount: 1n
+        amount: 100n
       }]
     })
 
 
     state = await game.fetchState()
 
-    expect(state.fields.pot).toEqual(1n)
+    expect(state.fields.pot).toEqual(100n)
     expect(state.asset.alphAmount).toEqual(MINIMAL_CONTRACT_DEPOSIT)
 
 
      nextPayment = (await game.view.getNextEntryPrice()).returns
-    expect(nextPayment).toEqual(1n)
+    expect(nextPayment).toEqual(110n)
 
     for (let index = 1; index < 6; index++) {
 
@@ -772,7 +778,7 @@ describe('integration tests', () => {
     state = await game.fetchState()
     now = BigInt(Date.now())
     expect(state.fields.endTimestamp).toBeLessThanOrEqual(now)
-    expect(state.fields.burnedAmount).toBe(0n)
+    expect(state.fields.burnedAmount).toBe(32n)
 
     expect((await game.view.canEnd()).returns).toBe(true)
   
@@ -817,7 +823,8 @@ describe('integration tests', () => {
         tokenId: ALPH_TOKEN_ID,
         boostAmount: 0n,
         burnBps: 0n,
-        burnedAmount: 0n
+        burnedAmount: 0n,
+        factoryId: ''
       }
     })
 

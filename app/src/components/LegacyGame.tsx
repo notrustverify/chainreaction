@@ -2,7 +2,7 @@
 
 import React, { FC, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { fetchV1GameState, GameState, shortenAddress } from '@/services/game.service'
+import { fetchRawGameState, GameState, shortenAddress } from '@/services/game.service'
 import { formatTokenAmount } from '@/services/tokenList'
 import { useThemeForcedParam, useTokensParam, appendPreservedParamsToHref } from '@/theme/useThemeForcedParam'
 
@@ -19,7 +19,7 @@ export const LegacyGame: FC<{ address: string }> = ({ address }) => {
 
     const poll = async () => {
       try {
-        const state = await fetchV1GameState(address)
+        const state = await fetchRawGameState(address)
         if (mountedRef.current) {
           setGameState(state)
           setIsLoading(false)

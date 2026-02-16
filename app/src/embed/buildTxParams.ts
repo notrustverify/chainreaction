@@ -8,7 +8,7 @@
 import type { GameContractInstance } from '@/services/game.service'
 import { startChain, joinChain, endChain, incentivize } from '@/services/game.service'
 import { createNewGame } from '@/services/factory.service'
-import type { FactoryChainReactionInstance } from 'my-contracts'
+import type { FactoryChainReactionV2Instance } from 'my-contracts'
 import { createCaptureSigner, serializeTxParams, EmbedTxParamsCapture } from './captureSigner'
 import type { SerializedSignExecuteScriptTxParams } from './captureSigner'
 
@@ -37,10 +37,13 @@ export async function buildStartChainTxParams(
   durationMs: bigint,
   multiplierBps: bigint,
   tokenId: string,
-  burnRate: bigint
+  burnRate: bigint,
+  isV3: boolean = false,
+  decayPeriodMs: bigint = 0n,
+  feesBps: bigint = 0n,
 ): Promise<SerializedSignExecuteScriptTxParams> {
   return buildParams(signerAddress, publicKey, (signer) =>
-    startChain(contract, signer, payment, durationMs, multiplierBps, tokenId, burnRate)
+    startChain(contract, signer, payment, durationMs, multiplierBps, tokenId, burnRate, isV3, decayPeriodMs, feesBps)
   )
 }
 
@@ -49,10 +52,11 @@ export async function buildJoinChainTxParams(
   publicKey: string,
   contract: GameContractInstance,
   payment: bigint,
-  tokenId: string
+  tokenId: string,
+  isV3: boolean = false,
 ): Promise<SerializedSignExecuteScriptTxParams> {
   return buildParams(signerAddress, publicKey, (signer) =>
-    joinChain(contract, signer, payment, tokenId)
+    joinChain(contract, signer, payment, tokenId, isV3)
   )
 }
 
@@ -72,21 +76,25 @@ export async function buildIncentivizeTxParams(
   publicKey: string,
   contract: GameContractInstance,
   amount: bigint,
-  tokenId: string
+  tokenId: string,
+  isV3: boolean = false,
 ): Promise<SerializedSignExecuteScriptTxParams> {
   return buildParams(signerAddress, publicKey, (signer) =>
-    incentivize(contract, signer, amount, tokenId)
+    incentivize(contract, signer, amount, tokenId, isV3)
   )
 }
 
 export async function buildCreateNewGameTxParams(
   signerAddress: string,
   publicKey: string,
-  factory: FactoryChainReactionInstance,
+  factory: FactoryChainReactionV2Instance,
   durationDecreaseMs: bigint,
-  minDuration: bigint
+  minDuration: bigint,
+  addrFees: string,
+  isFixedTokenId: boolean,
+  tokenId: string
 ): Promise<SerializedSignExecuteScriptTxParams> {
   return buildParams(signerAddress, publicKey, (signer) =>
-    createNewGame(factory, signer, durationDecreaseMs, minDuration)
+    createNewGame(factory, signer, durationDecreaseMs, minDuration, addrFees, isFixedTokenId, tokenId)
   )
 }
