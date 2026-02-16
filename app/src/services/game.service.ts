@@ -25,6 +25,7 @@ export interface GameState {
   burnedAmount: bigint
   decayPeriodMs: bigint
   isFixedTokenId: boolean
+  addrFees: string
   isV3: boolean
 }
 
@@ -74,6 +75,7 @@ export async function fetchGameState(contract: GameContractInstance): Promise<Ga
       burnedAmount: fields.burnedAmount,
       decayPeriodMs: fields.decayPeriodMs ?? 0n,
       isFixedTokenId: fields.isFixedTokenId ?? false,
+      addrFees: fields.addrFees ?? '',
       isV3,
     }
   } catch {
@@ -105,6 +107,7 @@ export async function fetchRawGameState(address: string): Promise<GameState> {
 function parseV3RawState(mut: any[], imm: any[]): GameState {
   const durationDecreaseMs = BigInt(imm[1].value as string)
   const minDuration = BigInt(imm[2].value as string)
+  const addrFees = imm.length >= 4 ? (imm[3].value as string) : ''
   const isFixedTokenId = imm.length >= 5 ? (imm[4].value as boolean) : false
 
   const chainId = BigInt(mut[0].value as string)
@@ -144,7 +147,7 @@ function parseV3RawState(mut: any[], imm: any[]): GameState {
     canEnd, endTimestamp, baseEntry, multiplierBps,
     durationMs, durationDecreaseMs, minDuration, tokenId,
     burnBps, burnedAmount, decayPeriodMs,
-    isFixedTokenId,
+    isFixedTokenId, addrFees,
     isV3: true,
   }
 }
@@ -184,6 +187,7 @@ function parseV1RawState(mut: any[], imm: any[]): GameState {
     burnBps, burnedAmount,
     decayPeriodMs: 0n,
     isFixedTokenId: false,
+    addrFees: '',
     isV3: false,
   }
 }

@@ -8,12 +8,13 @@ import { useGameList } from '@/hooks/useGameList'
 import { gameConfig } from '@/services/utils'
 
 export default function Home() {
-  const connectRef = useRef<HTMLDivElement>(null)
   const gamesRef = useRef<HTMLDivElement>(null)
   const { games, isLoading, error } = useGameList(gameConfig.factoryInstance)
 
   const openConnect = useCallback(() => {
-    const btn = connectRef.current?.querySelector('button')
+    // Click the AlephiumConnectButton rendered in the NavBar
+    const btn = document.querySelector('.alephium-connect-button') as HTMLButtonElement
+      ?? document.querySelector('nav button') as HTMLButtonElement
     btn?.click()
   }, [])
 

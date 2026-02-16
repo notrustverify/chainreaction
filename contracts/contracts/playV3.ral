@@ -44,6 +44,7 @@ Contract ChainReactionV3(
         BurnRateTooHigh = 7
         FeesToHigh = 8
         TokenIdIncorrect = 9
+        DecayPeriodTooLong = 10
     }
 
     // Start a new chain
@@ -55,6 +56,7 @@ Contract ChainReactionV3(
         assert!(burnRate <= 10000, ErrorCodes.BurnRateTooHigh)
         assert!(feesBpsGame <= 10000, ErrorCodes.FeesToHigh)
         assert!(!isFixedTokenId || tokenIdGame == tokenId, ErrorCodes.TokenIdIncorrect)
+        assert!(decayPeriodMsGame <= durationGameMs, ErrorCodes.DecayPeriodTooLong)
 
         let timestamp = blockTimeStamp!()
         

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useCallback, useMemo, Suspense } from 'react'
+import React, { useCallback, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ChainReactionV3, ChainReactionV1 } from 'my-contracts'
 import { GameBoard } from '@/components/GameBoard'
@@ -17,10 +17,10 @@ function GameContent() {
   const searchParams = useSearchParams()
   const address = searchParams.get('address')
   const tokenIdsFromQuery = useMemo(() => parseTokenIdsFromQuery(searchParams), [searchParams])
-  const connectRef = useRef<HTMLDivElement>(null)
-
   const openConnect = useCallback(() => {
-    const btn = connectRef.current?.querySelector('button')
+    // Click the AlephiumConnectButton rendered in the NavBar
+    const btn = document.querySelector('.alephium-connect-button') as HTMLButtonElement
+      ?? document.querySelector('nav button') as HTMLButtonElement
     btn?.click()
   }, [])
 

@@ -2,7 +2,7 @@
 
 import React, { FC, useState, useEffect } from 'react'
 import { useWallet } from '@alephium/web3-react'
-import { web3, addressFromContractId } from '@alephium/web3'
+import { web3, addressFromContractId, NULL_CONTRACT_ADDRESS } from '@alephium/web3'
 import { FactoryChainReactionV2Instance } from 'my-contracts'
 import { createNewGame } from '@/services/factory.service'
 import { useThemeForcedParam, useTokensParam, appendPreservedParamsToHref } from '@/theme/useThemeForcedParam'
@@ -67,7 +67,7 @@ export const CreateGame: FC<{
       setStep('signing')
       const durationDecreaseMs = BigInt(decreaseSeconds) * 1000n
       const minDuration = BigInt(minDurationSeconds) * 1000n
-      const feesAddr = customFeeEnabled && feeAddress.trim() ? feeAddress.trim() : (account?.address || '')
+      const feesAddr = customFeeEnabled && feeAddress.trim() ? feeAddress.trim() : NULL_CONTRACT_ADDRESS
       const tokenId = selectedToken.id
 
       let result: { txId: string }
@@ -230,7 +230,7 @@ export const CreateGame: FC<{
         /* Form state */
         <>
           <p className="text-xs text-muted">
-            Deploy a new game contract. These settings are permanent for this game instance.
+            Deploy a new game contract. These settings are permanent for this game instance. Other parameters can be changed after the game is created.
           </p>
 
           <div className="flex flex-col gap-1">
@@ -313,23 +313,25 @@ export const CreateGame: FC<{
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-[11px] text-label uppercase tracking-wider">
-              Fixed token
-            </label>
-            <button
-              type="button"
-              onClick={() => !busy && setIsFixedTokenId(!isFixedTokenId)}
-              disabled={busy}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 disabled:opacity-50 ${
-                isFixedTokenId ? 'bg-primary' : 'bg-btn-outline-border'
-              }`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm ${
-                  isFixedTokenId ? 'translate-x-6' : 'translate-x-1'
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] text-label uppercase tracking-wider">
+                Fixed token
+              </label>
+              <button
+                type="button"
+                onClick={() => !busy && setIsFixedTokenId(!isFixedTokenId)}
+                disabled={busy}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 disabled:opacity-50 ${
+                  isFixedTokenId ? 'bg-primary' : 'bg-btn-outline-border'
                 }`}
-              />
-            </button>
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${
+                    isFixedTokenId ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                  }`}
+                />
+              </button>
+            </div>
             <p className="text-[10px] text-muted">
               {isFixedTokenId
                 ? 'Token is locked — players cannot change the token for this game'
@@ -337,17 +339,19 @@ export const CreateGame: FC<{
             </p>
           </div>
 
-          <TokenSelector
-            tokens={tokenList}
-            selected={selectedToken}
-            onChange={setSelectedToken}
-            disabled={busy}
-          />
-          <p className="text-[10px] text-muted -mt-3">
-            {isFixedTokenId
-              ? 'This token will be permanently locked for all chains in this game'
-              : 'Default token for this game (players can override)'}
-          </p>
+          {isFixedTokenId && (
+            <>
+              <TokenSelector
+                tokens={tokenList}
+                selected={selectedToken}
+                onChange={setSelectedToken}
+                disabled={busy}
+              />
+              <p className="text-[10px] text-muted -mt-3">
+                This token will be permanently locked for all chains in this game
+              </p>
+            </>
+          )}
 
           {txError && (
             <p className="text-xs text-notification-error-text bg-notification-error-bg border border-notification-error-border rounded-lg px-3 py-2 break-all line-clamp-3">

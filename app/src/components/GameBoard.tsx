@@ -7,8 +7,9 @@ import { CountdownTimer } from './CountdownTimer'
 import { GameStats } from './GameStats'
 import { TokenSelector } from './TokenSelector'
 import { PriceChart } from './PriceChart'
-import { useWallet, useConnectSettingContext } from '@alephium/web3-react'
-import { web3 } from '@alephium/web3'
+import { DecayChart } from './DecayChart'
+import { useWallet } from '@alephium/web3-react'
+import { web3, NULL_CONTRACT_ADDRESS } from '@alephium/web3'
 import { useChainReaction } from '@/hooks/useChainReaction'
 import { sendToSW, notifyViaSW, subscribeToPush, unsubscribeFromPush } from '@/services/sw-register'
 import { getNodeUrl, gameConfig } from '@/services/utils'
@@ -43,9 +44,8 @@ export const GameBoard: FC<{
   onBrowseGames?: () => void
   tokenIdsFromQuery?: string[] | null
   isV1?: boolean
-}> = ({ contractInstance, onBrowseGames, tokenIdsFromQuery, isV1 = false }) => {
+}> = ({ contractInstance, onConnectRequest, onBrowseGames, tokenIdsFromQuery, isV1 = false }) => {
   const { signer, account: walletAccount } = useWallet()
-  const { setOpen: openConnectModal } = useConnectSettingContext()
   const { address: embeddedAddress, publicKey: embeddedPublicKey, isEmbeddedWallet, requestParentSignTxParams } = useEmbeddedWallet()
   const account = isEmbeddedWallet && embeddedAddress ? { address: embeddedAddress } : walletAccount
   const { gameState, isLoading, error, refresh, players } = useChainReaction(contractInstance)
@@ -56,6 +56,7 @@ export const GameBoard: FC<{
   const [multiplierPct, setMultiplierPct] = useState(5)
   const [burnPct, setBurnPct] = useState(5)
   const [decayMinutes, setDecayMinutes] = useState(0)
+  const [feesPct, setFeesPct] = useState(0)
   const [baseEntry, setBaseEntry] = useState('0.1')
   const [incentiveAmount, setIncentiveAmount] = useState('1')
   const [selectedToken, setSelectedToken] = useState<TokenInfo>(ALPH_TOKEN)
@@ -220,7 +221,7 @@ export const GameBoard: FC<{
 
   const handleStartChain = async () => {
     const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
-    if (!signer && !canUseEmbedded) { openConnectModal(true); return }
+    if (!signer && !canUseEmbedded) { onConnectRequest(); return }
     setTxError(undefined)
 
     const totalMinutes = durationHours * 60 + durationMinutes
@@ -235,6 +236,7 @@ export const GameBoard: FC<{
     const burnRate = BigInt(burnPct) * 100n
     const v3 = gameState?.isV3 ?? false
     const decayPeriodMsVal = BigInt(decayMinutes) * 60n * 1000n
+    const feesBps = BigInt(feesPct) * 100n
 
     try {
       if (canUseEmbedded) {
@@ -248,12 +250,13 @@ export const GameBoard: FC<{
           selectedToken.id,
           burnRate,
           v3,
-          decayPeriodMsVal
+          decayPeriodMsVal,
+          feesBps
         )
         const result = await requestParentSignTxParams(txParams)
         setOngoingTxId(result.txId)
       } else {
-        const result = await startChain(contractInstance, signer!, payment, durationMs, multiplierBps, selectedToken.id, burnRate, v3, decayPeriodMsVal)
+        const result = await startChain(contractInstance, signer!, payment, durationMs, multiplierBps, selectedToken.id, burnRate, v3, decayPeriodMsVal, feesBps)
         setOngoingTxId(result.txId)
       }
     } catch (err) {
@@ -263,7 +266,7 @@ export const GameBoard: FC<{
 
   const handleJoinChain = async () => {
     const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
-    if (!signer && !canUseEmbedded) { openConnectModal(true); return }
+    if (!signer && !canUseEmbedded) { onConnectRequest(); return }
     if (!gameState) return
     setTxError(undefined)
     try {
@@ -284,7 +287,7 @@ export const GameBoard: FC<{
 
   const handleEndChain = async () => {
     const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
-    if (!signer && !canUseEmbedded) { openConnectModal(true); return }
+    if (!signer && !canUseEmbedded) { onConnectRequest(); return }
     setTxError(undefined)
     try {
       if (canUseEmbedded) {
@@ -302,7 +305,7 @@ export const GameBoard: FC<{
 
   const handleIncentivize = async () => {
     const canUseEmbedded = isEmbeddedWallet && embeddedAddress && embeddedPublicKey
-    if ((!signer && !canUseEmbedded) || !gameState) { openConnectModal(true); return }
+    if ((!signer && !canUseEmbedded) || !gameState) { onConnectRequest(); return }
     setTxError(undefined)
     const amount = BigInt(Math.floor(parseFloat(incentiveAmount) * 10 ** activeToken.decimals))
     try {
@@ -483,21 +486,41 @@ export const GameBoard: FC<{
               </button>
             )}
 
-            <details className="w-full max-w-sm">
-              <summary className="text-sm text-muted cursor-pointer hover:text-primary transition-colors text-center select-none">
-                Price curve
-              </summary>
-              <div className="mt-3">
-                <PriceChart
-                  baseEntry={gameState.baseEntry}
-                  multiplierBps={gameState.multiplierBps}
-                  playerCount={gameState.playerCount}
-                  tokenSymbol={activeToken.symbol}
-                  tokenDecimals={activeToken.decimals}
-                  players={players}
-                />
-              </div>
-            </details>
+            <div className="w-full max-w-sm flex flex-col gap-2">
+              <details>
+                <summary className="text-sm text-muted cursor-pointer hover:text-primary transition-colors text-center select-none">
+                  Price curve
+                </summary>
+                <div className="mt-3">
+                  <PriceChart
+                    baseEntry={gameState.baseEntry}
+                    multiplierBps={gameState.multiplierBps}
+                    playerCount={gameState.playerCount}
+                    tokenSymbol={activeToken.symbol}
+                    tokenDecimals={activeToken.decimals}
+                    players={players}
+                  />
+                </div>
+              </details>
+              {gameState.decayPeriodMs > 0n && gameState.currentEntry > gameState.baseEntry && (
+                <details>
+                  <summary className="text-sm text-muted cursor-pointer hover:text-primary transition-colors text-center select-none">
+                    Price decay
+                  </summary>
+                  <div className="mt-3">
+                    <DecayChart
+                      currentEntry={gameState.currentEntry}
+                      baseEntry={gameState.baseEntry}
+                      multiplierBps={gameState.multiplierBps}
+                      lastEntryTimestamp={gameState.lastEntryTimestamp}
+                      decayPeriodMs={gameState.decayPeriodMs}
+                      tokenSymbol={activeToken.symbol}
+                      tokenDecimals={activeToken.decimals}
+                    />
+                  </div>
+                </details>
+              )}
+            </div>
             <details className="w-full max-w-sm">
               <summary className="text-sm text-muted cursor-pointer hover:text-primary transition-colors text-center select-none">
                 Boost the pot
@@ -675,6 +698,31 @@ export const GameBoard: FC<{
                   : `Price decays back to base entry over ${decayMinutes}m of inactivity`}
               </p>
             </div>
+            {gameState?.addrFees && gameState.addrFees !== NULL_CONTRACT_ADDRESS && (
+              <div className="flex flex-col gap-1">
+                <label htmlFor="fees-pct" className="text-[11px] text-label uppercase tracking-wider">
+                  Fees (%)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="fees-pct"
+                    type="range"
+                    min={0}
+                    max={50}
+                    step={1}
+                    value={feesPct}
+                    onChange={(e) => setFeesPct(Number(e.target.value))}
+                    className="flex-1 accent-primary"
+                  />
+                  <span className="text-base font-bold text-primary min-w-[4ch] text-right">{feesPct}%</span>
+                </div>
+                <p className="text-[10px] text-muted">
+                  {feesPct === 0
+                    ? 'No fees — winner receives the full pot'
+                    : `${feesPct}% of the pot will be sent to the fee address on chain end`}
+                </p>
+              </div>
+            )}
           </div>
           {parseFloat(baseEntry) > 0 && (
             <div className="w-full flex-1 min-w-0 flex flex-col">
