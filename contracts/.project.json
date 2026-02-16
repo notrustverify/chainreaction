@@ -26,9 +26,9 @@
     },
     "ChainReactionV3": {
       "sourceFile": "playV3.ral",
-      "sourceCodeHash": "9ede760a339cbede308dba5100a6f8c03c95c6334a4940b8637134cf4287d302",
+      "sourceCodeHash": "c4cb3565d04d46b01fc6f7f53e0e9a94326078e97ec497dd9f077d36ba2b0e0c",
       "bytecodeDebugPatch": "",
-      "codeHashDebug": "2be48c768ffa519cbac391d29bfc65565ef792b57b37a1844b3593acaa776d14"
+      "codeHashDebug": "61069fdba1b27971e41e23be8f85c086bb8c12fdd6f2de27ce87bcbbafb824aa"
     },
     "FactoryChainReaction": {
       "sourceFile": "factory.ral",
@@ -38,9 +38,9 @@
     },
     "FactoryChainReactionV2": {
       "sourceFile": "factoryV2.ral",
-      "sourceCodeHash": "ff8f99d1715ee48205495d7f9b78f9defbe66157c2967096c973cf69c82b6d3b",
+      "sourceCodeHash": "47357db31e7d25ba7959a25ee974a22bcd8976db58f3b6b710bc19f18683dd85",
       "bytecodeDebugPatch": "",
-      "codeHashDebug": "03c158b0fb5e169dc05a8fa2a3ff858c0f11242f483beed745dae2f3f7575732"
+      "codeHashDebug": "74aedc46a5e29dfb413873ea10a2f8c89ae78bd1c8757a587631331fe6e5faa2"
     }
   }
 }

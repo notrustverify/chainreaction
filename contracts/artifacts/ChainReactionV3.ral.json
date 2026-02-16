@@ -1,0 +1,369 @@
+{
+  "version": "v4.3.0",
+  "name": "ChainReactionV3",
+  "bytecode": "160840c8417e41f4420b4225425742b242c00101080a044071d366f809c7a007190f7b1602ce013413067b16051367103213077b16061367103213087bce04197a4b04181604a00c4113097b1607160232130a7b56170816010c330e7bb417091609ce0077454c0216001709160916041601ac1601a1081604a10c1602a10a1603a10b1606a10fa0000d2aa100a008a1011609a1021608a00a2aa1091608a103a00416012aa1040da1061605a10d0ca10e1607a11003a10705a000a003a00fa00c6106a000a0021601a004a0060ca00c75a000a003a004a0060201010208054065d3339d0a93a0070c7bb417021602ce0077454c02160017025617031603a00931117b0006170416011604340e7b1602a00c1604aca0060d2aa1061604a1011602a1021603a1031604a00d2c1367102d1705a00e16052aa10e160416052b1706a00ccd424c04b2a00c1605bda00a17071607ce02324c03ce0217074a06a00aa006ce012c2b1707160316072aa109a00416062aa10406a000a0021606a004a0061605a00c75a0001606a004a00616050201020005054041d3c6116e8a0003107ba004a00f2c1367102d1700a005a00416002b2a1701a002a00c1601abce03ca467a4c041816000c334c04ce03a00c1600ab07a000a0021601a00e160073a00e170216011703a000170404a1070ca1040ca1050ca1060ca1010ca10e1604a0021603160216000201000000010ad327625287a007194c02040256a0093402010000000709d3d50f1f95a000a001a002a003a004a007a00602010102030019d37903f5bba0070c7bb417021602ce0077454c02160017021602a00c1601aca00516012aa10509160216015f01000003014031d3b1b69428a007194c02a00802a0011700a0100c337a4c0418a001a008334c1756a0032b1701a001a0082b17021601a010344c03a00817004a08a001160216012ca0102d2b170016001600a00b2c1367102d2a02010000000103d3dc32daa9ce0002",
+  "codeHash": "61069fdba1b27971e41e23be8f85c086bb8c12fdd6f2de27ce87bcbbafb824aa",
+  "fieldsSig": {
+    "names": [
+      "factoryId",
+      "durationDecreaseMs",
+      "minDuration",
+      "addrFees",
+      "isFixedTokenId",
+      "chainId",
+      "currentEntry",
+      "lastPlayer",
+      "lastEntryTimestamp",
+      "pot",
+      "boostAmount",
+      "playerCount",
+      "isActive",
+      "baseEntry",
+      "endTimestamp",
+      "durationMs",
+      "multiplierBps",
+      "tokenId",
+      "burnBps",
+      "burnedAmount",
+      "feesBps",
+      "decayPeriodMs"
+    ],
+    "types": [
+      "ByteVec",
+      "U256",
+      "U256",
+      "Address",
+      "Bool",
+      "U256",
+      "U256",
+      "Address",
+      "U256",
+      "U256",
+      "U256",
+      "U256",
+      "Bool",
+      "U256",
+      "U256",
+      "U256",
+      "U256",
+      "ByteVec",
+      "U256",
+      "U256",
+      "U256",
+      "U256"
+    ],
+    "isMutable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "eventsSig": [
+    {
+      "name": "ChainStarted",
+      "fieldNames": [
+        "chainId",
+        "startBlock",
+        "feesBps",
+        "tokenId"
+      ],
+      "fieldTypes": [
+        "U256",
+        "U256",
+        "U256",
+        "ByteVec"
+      ]
+    },
+    {
+      "name": "PlayerJoined",
+      "fieldNames": [
+        "chainId",
+        "player",
+        "entryFee",
+        "newPot",
+        "position",
+        "amountBurned",
+        "tokenId"
+      ],
+      "fieldTypes": [
+        "U256",
+        "Address",
+        "U256",
+        "U256",
+        "U256",
+        "U256",
+        "ByteVec"
+      ]
+    },
+    {
+      "name": "ChainEnded",
+      "fieldNames": [
+        "chainId",
+        "winner",
+        "payout",
+        "totalBurned",
+        "feesAmount"
+      ],
+      "fieldTypes": [
+        "U256",
+        "Address",
+        "U256",
+        "U256",
+        "U256"
+      ]
+    },
+    {
+      "name": "ChainTimeout",
+      "fieldNames": [
+        "chainId",
+        "player"
+      ],
+      "fieldTypes": [
+        "U256",
+        "Address"
+      ]
+    },
+    {
+      "name": "PotBoosted",
+      "fieldNames": [
+        "caller",
+        "amount"
+      ],
+      "fieldTypes": [
+        "Address",
+        "U256"
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "startChain",
+      "paramNames": [
+        "callerAddr",
+        "payment",
+        "durationGameMs",
+        "multiplierGameBps",
+        "tokenIdGame",
+        "burnRate",
+        "feesBpsGame",
+        "decayPeriodMsGame"
+      ],
+      "paramTypes": [
+        "Address",
+        "U256",
+        "U256",
+        "U256",
+        "ByteVec",
+        "U256",
+        "U256",
+        "U256"
+      ],
+      "paramIsMutable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "returnTypes": [
+        "U256",
+        "U256",
+        "U256",
+        "U256"
+      ]
+    },
+    {
+      "name": "joinChain",
+      "paramNames": [
+        "callerAddr",
+        "payment"
+      ],
+      "paramTypes": [
+        "Address",
+        "U256"
+      ],
+      "paramIsMutable": [
+        false,
+        false
+      ],
+      "returnTypes": [
+        "U256",
+        "U256",
+        "U256",
+        "U256",
+        "U256"
+      ]
+    },
+    {
+      "name": "endChain",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "U256",
+        "Address",
+        "U256",
+        "U256",
+        "U256"
+      ]
+    },
+    {
+      "name": "canEnd",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "Bool"
+      ]
+    },
+    {
+      "name": "getChainInfo",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "U256",
+        "U256",
+        "Address",
+        "U256",
+        "U256",
+        "Bool",
+        "U256"
+      ]
+    },
+    {
+      "name": "incentive",
+      "paramNames": [
+        "callerAddr",
+        "amount"
+      ],
+      "paramTypes": [
+        "Address",
+        "U256"
+      ],
+      "paramIsMutable": [
+        false,
+        false
+      ],
+      "returnTypes": []
+    },
+    {
+      "name": "getNextEntryPrice",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "U256"
+      ]
+    },
+    {
+      "name": "getFactoryId",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "ByteVec"
+      ]
+    }
+  ],
+  "constants": [],
+  "enums": [
+    {
+      "name": "ErrorCodes",
+      "fields": [
+        {
+          "name": "ChainNotActive",
+          "value": {
+            "type": "U256",
+            "value": "0"
+          }
+        },
+        {
+          "name": "InsufficientPayment",
+          "value": {
+            "type": "U256",
+            "value": "2"
+          }
+        },
+        {
+          "name": "ChainAlreadyActive",
+          "value": {
+            "type": "U256",
+            "value": "3"
+          }
+        },
+        {
+          "name": "TooEarlyToEnd",
+          "value": {
+            "type": "U256",
+            "value": "4"
+          }
+        },
+        {
+          "name": "GameEnded",
+          "value": {
+            "type": "U256",
+            "value": "5"
+          }
+        },
+        {
+          "name": "DurationToLow",
+          "value": {
+            "type": "U256",
+            "value": "6"
+          }
+        },
+        {
+          "name": "BurnRateTooHigh",
+          "value": {
+            "type": "U256",
+            "value": "7"
+          }
+        },
+        {
+          "name": "FeesToHigh",
+          "value": {
+            "type": "U256",
+            "value": "8"
+          }
+        },
+        {
+          "name": "TokenIdIncorrect",
+          "value": {
+            "type": "U256",
+            "value": "9"
+          }
+        },
+        {
+          "name": "DecayPeriodTooLong",
+          "value": {
+            "type": "U256",
+            "value": "10"
+          }
+        }
+      ]
+    }
+  ]
+}

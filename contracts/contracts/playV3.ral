@@ -194,9 +194,13 @@ Contract ChainReactionV3(
     }
 
     @using(preapprovedAssets = true, updateFields = true, checkExternalCaller = false, assetsInContract = true)
-    pub fn incentive(amount: U256) -> () {
+    pub fn incentive(callerAddr: Address, amount: U256) -> () {
         assert!(isActive, ErrorCodes.ChainNotActive)
-        let caller = callerAddress!()
+
+        let  mut caller = callerAddress!()
+        if caller == contractIdToAddress!(factoryId) {
+            caller = callerAddr
+        }
 
         transferTokenToSelf!(caller, tokenId, amount)
         boostAmount = boostAmount + amount
