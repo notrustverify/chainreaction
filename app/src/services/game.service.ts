@@ -268,9 +268,11 @@ export async function endChain(
   signer: SignerProvider,
   tokenId: string
 ): Promise<{ txId: string }> {
-  const result = await contract.transact.endChain({
+  // V2/V1
+  const v2 = contract as ChainReactionInstance
+  const result = await v2.transact.endChain({
     signer,
-    attoAlphAmount: isAlph(tokenId) ? 5n*DUST_AMOUNT : 5n*DUST_AMOUNT,
+    attoAlphAmount: 5n*DUST_AMOUNT,
   })
   return { txId: result.txId }
 }
@@ -292,7 +294,9 @@ export async function incentivize(
     return { txId: result.txId }
   }
 
-  const result = await contract.transact.incentive({
+  // V2/V1
+  const v2 = contract as ChainReactionInstance
+  const result = await v2.transact.incentive({
     signer,
     args: { amount },
     ...buildTxParams(tokenId, amount),

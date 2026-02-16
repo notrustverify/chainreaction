@@ -11,6 +11,7 @@ interface GameStatsProps {
   lastPlayer: string
   playerCount: bigint
   multiplierBps: bigint
+  burnedAmount: bigint
   burnBps: bigint
   decayPeriodMs: bigint
   currentEntry: bigint

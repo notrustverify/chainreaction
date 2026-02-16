@@ -478,6 +478,7 @@ export const GameBoard: FC<{
               lastPlayer={gameState.lastPlayer}
               playerCount={gameState.playerCount}
               multiplierBps={gameState.multiplierBps}
+              burnedAmount={gameState.burnedAmount}
               burnBps={gameState.burnBps}
               decayPeriodMs={gameState.decayPeriodMs}
               currentEntry={gameState.currentEntry}
