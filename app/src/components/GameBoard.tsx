@@ -488,6 +488,22 @@ export const GameBoard: FC<{
               tokenDecimals={activeToken.decimals}
             />
 
+            {resolvedBurns.length > 0 && (
+              <div className="w-full max-w-sm flex flex-col gap-2">
+                {resolvedBurns.filter(b => b.amount > 0n).map(b => (
+                  <div key={b.tokenId} className="flex items-center justify-between px-3 py-2 bg-stat-card-bg rounded-lg border border-card-border">
+                    <span className="text-sm text-label flex items-center gap-1.5">
+                      <RiFireFill className="text-burn-value" />
+                      {b.symbol} burned
+                    </span>
+                    <span className="text-sm font-bold text-burn-value">
+                      {formatTokenAmount(b.amount, b.decimals)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {onBrowseGames && (
               <button
                 onClick={onBrowseGames}
@@ -529,21 +545,6 @@ export const GameBoard: FC<{
                       tokenSymbol={activeToken.symbol}
                       tokenDecimals={activeToken.decimals}
                     />
-              {resolvedBurns.length > 0 && (
-                <details>
-                  <summary className="text-sm text-muted cursor-pointer hover:text-primary transition-colors text-center select-none flex items-center gap-1.5">
-                    <RiFireFill className="text-burn-value" />
-                    Burned tokens
-                  </summary>
-                  <div className="mt-3 flex flex-col gap-2">
-                    {resolvedBurns.filter(b => b.amount > 0n).map(b => (
-                      <div key={b.tokenId} className="flex items-center justify-between px-3 py-2 bg-stat-card-bg rounded-lg border border-card-border">
-                        <span className="text-sm text-label">{b.symbol}</span>
-                        <span className="text-sm font-bold text-burn-value">
-                          {formatTokenAmount(b.amount, b.decimals)}
-                        </span>
-                      </div>
-                    ))}
                   </div>
                 </details>
               )}
