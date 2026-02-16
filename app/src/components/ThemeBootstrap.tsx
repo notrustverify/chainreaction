@@ -27,9 +27,8 @@ export function ThemeBootstrap() {
       return
     }
 
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light'
-    document.documentElement.dataset.themeForced = '0'
+    // No stored preference — keep whatever the inline FOUC script already set
+    // (it defaults to 'light'). Don't override with prefers-color-scheme.
   }, [searchParams])
 
   return null
