@@ -22,6 +22,7 @@ import {
 } from '@/embed/buildTxParams'
 import { GameContractInstance, startChain, joinChain, endChain, incentivize, GameState, normalizeAddress } from '@/services/game.service'
 import { TokenInfo, ALPH_TOKEN, fetchWalletTokens, fetchTokenBalance, resolveTokenInfo, formatTokenAmount } from '@/services/tokenList'
+import { RiFireFill } from 'react-icons/ri'
 import { ActivityFeed } from './ActivityFeed'
 
 type UIState = 'loading' | 'no-chain' | 'active' | 'claimable' | 'error'
@@ -48,7 +49,7 @@ export const GameBoard: FC<{
   const { signer, account: walletAccount } = useWallet()
   const { address: embeddedAddress, publicKey: embeddedPublicKey, isEmbeddedWallet, requestParentSignTxParams } = useEmbeddedWallet()
   const account = isEmbeddedWallet && embeddedAddress ? { address: embeddedAddress } : walletAccount
-  const { gameState, isLoading, error, refresh, players } = useChainReaction(contractInstance)
+  const { gameState, isLoading, error, refresh, players, burnsByToken } = useChainReaction(contractInstance)
   const [ongoingTxId, setOngoingTxId] = useState<string>()
   const [txError, setTxError] = useState<string>()
   const [durationHours, setDurationHours] = useState(1)
@@ -63,6 +64,7 @@ export const GameBoard: FC<{
   const [tokenList, setTokenList] = useState<TokenInfo[]>([ALPH_TOKEN])
   const [tokenListFromQuery, setTokenListFromQuery] = useState(false)
   const [userBalance, setUserBalance] = useState<bigint | null>(null)
+  const [resolvedBurns, setResolvedBurns] = useState<Array<{ tokenId: string; symbol: string; decimals: number; amount: bigint }>>([])
   const [copiedShare, setCopiedShare] = useState<'embed' | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -115,7 +117,17 @@ export const GameBoard: FC<{
     }
   }, [account?.address, tokenIdsFromQuery])
 
-  // Pre-select token from last chain when game is inactive, or when token is fixed
+  // Resolve token metadata for burn totals
+  useEffect(() => {
+    const entries = Array.from(burnsByToken.entries())
+    if (entries.length === 0) { setResolvedBurns([]); return }
+    Promise.all(entries.map(async ([tokenId, amount]) => {
+      const info = await resolveTokenInfo(tokenId)
+      return { tokenId, symbol: info.symbol, decimals: info.decimals, amount }
+    })).then(setResolvedBurns)
+  }, [burnsByToken])
+
+  // Pre-select token from last chain when game is inactive
   useEffect(() => {
     if (tokenListFromQuery) return
     if (!gameState || !gameState.tokenId) return
@@ -466,7 +478,6 @@ export const GameBoard: FC<{
               lastPlayer={gameState.lastPlayer}
               playerCount={gameState.playerCount}
               multiplierBps={gameState.multiplierBps}
-              burnedAmount={gameState.burnedAmount}
               burnBps={gameState.burnBps}
               decayPeriodMs={gameState.decayPeriodMs}
               currentEntry={gameState.currentEntry}
@@ -518,6 +529,21 @@ export const GameBoard: FC<{
                       tokenSymbol={activeToken.symbol}
                       tokenDecimals={activeToken.decimals}
                     />
+              {resolvedBurns.length > 0 && (
+                <details>
+                  <summary className="text-sm text-muted cursor-pointer hover:text-primary transition-colors text-center select-none flex items-center gap-1.5">
+                    <RiFireFill className="text-burn-value" />
+                    Burned tokens
+                  </summary>
+                  <div className="mt-3 flex flex-col gap-2">
+                    {resolvedBurns.filter(b => b.amount > 0n).map(b => (
+                      <div key={b.tokenId} className="flex items-center justify-between px-3 py-2 bg-stat-card-bg rounded-lg border border-card-border">
+                        <span className="text-sm text-label">{b.symbol}</span>
+                        <span className="text-sm font-bold text-burn-value">
+                          {formatTokenAmount(b.amount, b.decimals)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </details>
               )}
