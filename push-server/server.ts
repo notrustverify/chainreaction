@@ -57,7 +57,7 @@ const stmtUpsertSub = db.prepare(`
   ON CONFLICT(endpoint, contract_address) DO UPDATE SET
     subscription = @subscription,
     user_address = @userAddress,
-    was_last_player = CASE WHEN subscribers.was_last_player = 1 THEN 1 ELSE @wasLastPlayer END,
+    was_last_player = @wasLastPlayer,
     notified_5min = CASE WHEN @notified5min = 1 THEN 1 ELSE subscribers.notified_5min END,
     notified_1min = CASE WHEN @notified1min = 1 THEN 1 ELSE subscribers.notified_1min END
 `)
@@ -364,6 +364,15 @@ const server = createServer(async (req, res) => {
         return json(res, 400, { error: 'Missing subscription or contractAddress' })
       }
 
+      // Check if user is currently the last player so overtaken detection works
+      let wasLastPlayer = 0
+      if (body.userAddress) {
+        const state = await fetchContractState(body.contractAddress)
+        if (state?.isActive) {
+          wasLastPlayer = normalizeAddress(state.lastPlayer) === normalizeAddress(body.userAddress) ? 1 : 0
+        }
+      }
+
       // Pre-set notification flags so new subscribers don't get stale warnings
       const remaining = body.endTimestamp ? body.endTimestamp - Date.now() : Infinity
       stmtUpsertSub.run({
@@ -371,13 +380,13 @@ const server = createServer(async (req, res) => {
         subscription: JSON.stringify(body.subscription),
         contractAddress: body.contractAddress,
         userAddress: body.userAddress || null,
-        wasLastPlayer: 0,
+        wasLastPlayer,
         notified5min: remaining <= 5 * 60 * 1000 ? 1 : 0,
         notified1min: remaining <= 60 * 1000 ? 1 : 0,
       })
 
       const count = (stmtGetSubs.all({ contractAddress: body.contractAddress }) as SubRow[]).length
-      console.log(`[subscribe] contract=${body.contractAddress} user=${body.userAddress || 'anonymous'} total=${count}`)
+      console.log(`[subscribe] contract=${body.contractAddress} user=${body.userAddress || 'anonymous'} wasLastPlayer=${wasLastPlayer} total=${count}`)
       return json(res, 200, { ok: true })
     } catch (e) {
       return json(res, 400, { error: 'Invalid JSON' })
