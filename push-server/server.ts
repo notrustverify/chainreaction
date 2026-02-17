@@ -200,15 +200,23 @@ async function fetchContractState(contractAddress: string): Promise<ContractStat
   }
 }
 
+function shortenEndpoint(endpoint: string): string {
+  try { return new URL(endpoint).pathname.slice(-12) } catch { return endpoint.slice(-12) }
+}
+
 async function sendPush(sub: SubRow, payload: { title: string; body: string }): Promise<'ok' | 'expired'> {
+  const who = sub.user_address ? normalizeAddress(sub.user_address).slice(0, 8) : shortenEndpoint(sub.endpoint)
+  console.log(`[push] Sending "${payload.title}" to ${who} (contract=${sub.contract_address.slice(0, 8)}...)`)
   try {
     const subscription = JSON.parse(sub.subscription) as webpush.PushSubscription
     await webpush.sendNotification(subscription, JSON.stringify(payload))
+    console.log(`[push] Sent OK to ${who}`)
   } catch (e: any) {
     if (e.statusCode === 410 || e.statusCode === 404) {
+      console.log(`[push] Expired subscription for ${who}, removing`)
       return 'expired'
     }
-    console.error('[push] Send failed:', e.statusCode || e.message)
+    console.error(`[push] Send failed to ${who}:`, e.statusCode || e.message)
   }
   return 'ok'
 }
