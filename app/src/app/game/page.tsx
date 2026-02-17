@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useMemo, useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { ChainReaction, ChainReactionV3 } from 'my-contracts'
 import { GameBoard } from '@/components/GameBoard'
 import { GameContractInstance, fetchRawGameState } from '@/services/game.service'
@@ -36,12 +36,16 @@ function GameContent() {
   const searchParams = useSearchParams()
   const address = searchParams.get('address')
   const tokenIdsFromQuery = useMemo(() => parseTokenIdsFromQuery(searchParams), [searchParams])
+  const router = useRouter()
   const openConnect = useCallback(() => {
     // Click the AlephiumConnectButton rendered in the NavBar
     const btn = document.querySelector('.alephium-connect-button') as HTMLButtonElement
       ?? document.querySelector('nav button') as HTMLButtonElement
     btn?.click()
   }, [])
+  const browseGames = useCallback(() => {
+    router.push('/#games')
+  }, [router])
 
   if (!address) {
     return (
@@ -66,6 +70,7 @@ function GameContent() {
         <GameBoard
           contractInstance={contractInstance}
           onConnectRequest={openConnect}
+          onBrowseGames={browseGames}
           tokenIdsFromQuery={tokenIdsFromQuery}
         />
       </main>

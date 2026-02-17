@@ -35,7 +35,7 @@ export default function Home() {
 
         <h1 className="text-2xl font-bold text-page-heading">All Games</h1>
 
-        <div ref={gamesRef} className="w-full max-w-6xl px-4 py-8 flex flex-col items-center gap-5">
+        <div id="games" ref={gamesRef} className="w-full max-w-6xl px-4 py-8 flex flex-col items-center gap-5">
           <React.Suspense fallback={
             <div className="w-full flex flex-col items-center gap-5">
               <div className="w-full h-64 rounded-2xl border border-card-border bg-card-bg animate-pulse" />
