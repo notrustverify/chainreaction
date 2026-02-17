@@ -55,7 +55,7 @@ export default function Home() {
               </p>
             )}
 
-            <GameList games={games} isLoading={isLoading} />
+            <GameList games={games} isLoading={isLoading} excludeAddress={gameConfig.featuredAddress} />
           </React.Suspense>
         </div>
       </main>

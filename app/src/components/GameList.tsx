@@ -41,7 +41,8 @@ function getStatus(game: GameListItem): { label: string; color: string } {
   return { label: 'Active', color: 'text-status-success-text bg-status-success-bg' }
 }
 
-export const GameList: FC<{ games: GameListItem[]; isLoading: boolean }> = ({ games, isLoading }) => {
+export const GameList: FC<{ games: GameListItem[]; isLoading: boolean; excludeAddress?: string | null }> = ({ games: allGames, isLoading, excludeAddress }) => {
+  const games = excludeAddress ? allGames.filter(g => g.address !== excludeAddress) : allGames
   const themeParam = useThemeForcedParam()
   const tokensParam = useTokensParam()
   const preserved = { theme: themeParam, tokens: tokensParam }

@@ -1,11 +1,14 @@
 'use client'
 
-import React, { useCallback, useMemo, useState, useEffect, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import React, { useCallback, useMemo, useRef, useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+
 import { ChainReaction, ChainReactionV3 } from 'my-contracts'
 import { GameBoard } from '@/components/GameBoard'
+import { GameList } from '@/components/GameList'
 import { GameContractInstance, fetchRawGameState } from '@/services/game.service'
-import '@/services/utils' // ensure node provider is set
+import { gameConfig } from '@/services/utils'
+import { useGameList } from '@/hooks/useGameList'
 
 function parseTokenIdsFromQuery(searchParams: URLSearchParams): string[] | null {
   const raw = searchParams.get('tokens')
@@ -36,7 +39,8 @@ function GameContent() {
   const searchParams = useSearchParams()
   const address = searchParams.get('address')
   const tokenIdsFromQuery = useMemo(() => parseTokenIdsFromQuery(searchParams), [searchParams])
-  const router = useRouter()
+  const gamesRef = useRef<HTMLDivElement>(null)
+  const { games, isLoading, error } = useGameList(gameConfig.factoryInstance, gameConfig.oldFactoryInstance)
   const openConnect = useCallback(() => {
     // Click the AlephiumConnectButton rendered in the NavBar
     const btn = document.querySelector('.alephium-connect-button') as HTMLButtonElement
@@ -44,8 +48,8 @@ function GameContent() {
     btn?.click()
   }, [])
   const browseGames = useCallback(() => {
-    router.push('/#games')
-  }, [router])
+    gamesRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
 
   if (!address) {
     return (
@@ -66,13 +70,24 @@ function GameContent() {
   }
 
   return (
-      <main className="flex-1 flex flex-col items-center justify-center w-full">
+      <main className="flex-1 flex flex-col items-center w-full max-w-6xl px-4 py-8 gap-5">
         <GameBoard
           contractInstance={contractInstance}
           onConnectRequest={openConnect}
           onBrowseGames={browseGames}
           tokenIdsFromQuery={tokenIdsFromQuery}
         />
+
+        <h1 className="text-2xl font-bold text-page-heading">All Games</h1>
+
+        <div ref={gamesRef} className="w-full max-w-6xl px-4 py-8 flex flex-col items-center gap-5">
+          {error && (
+            <p className="w-full text-center text-sm text-notification-error-text bg-notification-error-bg border border-notification-error-border rounded-xl px-4 py-3">
+              {error}
+            </p>
+          )}
+          <GameList games={games} isLoading={isLoading} excludeAddress={address} />
+        </div>
       </main>
   )
 }
