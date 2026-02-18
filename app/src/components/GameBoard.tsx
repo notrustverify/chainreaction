@@ -648,7 +648,11 @@ export const GameBoard: FC<{
                     min={0}
                     max={12}
                     value={durationHours}
-                    onChange={(e) => setDurationHours(Math.max(0, Math.min(12, Number(e.target.value))))}
+                    onChange={(e) => {
+                      const h = Math.max(0, Math.min(12, Number(e.target.value)))
+                      setDurationHours(h)
+                      setDecayMinutes(prev => Math.min(prev, h * 60 + durationMinutes))
+                    }}
                     className="w-full px-3 py-2 text-center text-base rounded-lg border border-input-border bg-input-bg text-input-fg focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 focus:border-input-focus-ring"
                   />
                 </div>
@@ -662,7 +666,11 @@ export const GameBoard: FC<{
                     min={0}
                     max={59}
                     value={durationMinutes}
-                    onChange={(e) => setDurationMinutes(Math.max(0, Math.min(59, Number(e.target.value))))}
+                    onChange={(e) => {
+                      const m = Math.max(0, Math.min(59, Number(e.target.value)))
+                      setDurationMinutes(m)
+                      setDecayMinutes(prev => Math.min(prev, durationHours * 60 + m))
+                    }}
                     className="w-full px-3 py-2 text-center text-base rounded-lg border border-input-border bg-input-bg text-input-fg focus:outline-none focus:ring-2 focus:ring-input-focus-ring/30 focus:border-input-focus-ring"
                   />
                 </div>
@@ -713,9 +721,9 @@ export const GameBoard: FC<{
                   id="decay"
                   type="range"
                   min={0}
-                  max={120}
+                  max={durationHours * 60 + durationMinutes}
                   step={1}
-                  value={decayMinutes}
+                  value={Math.min(decayMinutes, durationHours * 60 + durationMinutes)}
                   onChange={(e) => setDecayMinutes(Number(e.target.value))}
                   className="flex-1 accent-primary"
                 />
