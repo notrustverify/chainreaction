@@ -9,6 +9,7 @@ import { ALPH_TOKEN } from '@/services/tokenList'
 export interface PlayerEntry {
   position: number
   address: string
+  entryFee: bigint
 }
 
 const FALLBACK_POLL_MS = 15000
@@ -171,7 +172,7 @@ export function useChainReaction(contract: GameContractInstance) {
             seenEventsRef.current.add(eventKey)
             const pos = Number(fields.position)
             const key = `${fields.chainId}:${pos}`
-            playersRef.current.set(key, { position: pos, address: normalizeAddress(fields.player) })
+            playersRef.current.set(key, { position: pos, address: normalizeAddress(fields.player), entryFee: fields.entryFee })
             setPlayers(Array.from(playersRef.current.values()))
           }
         }

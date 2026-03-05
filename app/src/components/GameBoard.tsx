@@ -584,8 +584,6 @@ export const GameBoard: FC<{
           <div className="w-full lg:w-72 lg:sticky lg:top-4 rounded-2xl border border-card-border bg-card-bg overflow-hidden lg:max-h-[calc(100vh-6rem)]">
             <ActivityFeed
               players={players}
-              baseEntry={gameState.baseEntry}
-              multiplierBps={gameState.multiplierBps}
               tokenSymbol={activeToken.symbol}
               tokenDecimals={activeToken.decimals}
               currentUserAddress={account?.address}

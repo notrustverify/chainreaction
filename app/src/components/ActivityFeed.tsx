@@ -6,20 +6,10 @@ import { formatTokenAmount } from '@/services/tokenList'
 
 interface ActivityFeedProps {
   players: PlayerEntry[]
-  baseEntry: bigint
-  multiplierBps: bigint
   tokenSymbol: string
   tokenDecimals: number
   currentUserAddress?: string
   playerCount: bigint
-}
-
-function computePrice(baseEntry: bigint, multiplierBps: bigint, position: number): bigint {
-  let price = baseEntry
-  for (let i = 1; i < position; i++) {
-    price = price + (price * multiplierBps) / 10000n
-  }
-  return price
 }
 
 function shortenAddr(addr: string): string {
@@ -31,8 +21,6 @@ const INITIAL_VISIBLE = 15
 
 export const ActivityFeed: FC<ActivityFeedProps> = ({
   players,
-  baseEntry,
-  multiplierBps,
   tokenSymbol,
   tokenDecimals,
   currentUserAddress,
@@ -69,7 +57,7 @@ export const ActivityFeed: FC<ActivityFeedProps> = ({
 
         <div className="flex flex-col">
           {visible.map((player, i) => {
-            const price = computePrice(baseEntry, multiplierBps, player.position)
+            const price = player.entryFee
             const isLatest = i === 0
             const isYou = currentUserAddress && player.address.toLowerCase() === currentUserAddress.toLowerCase()
 
