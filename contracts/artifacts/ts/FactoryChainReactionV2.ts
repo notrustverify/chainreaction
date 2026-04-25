@@ -35,6 +35,7 @@ import {
 } from "@alephium/web3";
 import { default as FactoryChainReactionV2ContractJson } from "../FactoryChainReactionV2.ral.json";
 import { getContractByCodeHash, registerContract } from "./contracts";
+import * as types from "./types";
 
 // Custom types for the contract
 export namespace FactoryChainReactionV2Types {
@@ -207,7 +208,7 @@ class Factory extends ContractFactory<
     return encodeContractFields(
       addStdIdToFields(this.contract, fields),
       this.contract.fieldsSig,
-      []
+      types.AllStructs
     );
   }
 
@@ -297,7 +298,7 @@ export const FactoryChainReactionV2 = new Factory(
     FactoryChainReactionV2ContractJson,
     "",
     "74aedc46a5e29dfb413873ea10a2f8c89ae78bd1c8757a587631331fe6e5faa2",
-    []
+    types.AllStructs
   )
 );
 registerContract(FactoryChainReactionV2);

@@ -7,5 +7,8 @@ export * from "./ChainReactionV1";
 export * from "./ChainReactionV3";
 export * from "./FactoryChainReaction";
 export * from "./FactoryChainReactionV2";
+export * from "./GameHubFactory";
+export * from "./GameRoom";
+export * from "./MockDIAOracle";
 export * from "./contracts";
 export * from "./scripts";

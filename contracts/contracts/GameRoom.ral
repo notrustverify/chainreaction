@@ -1,0 +1,385 @@
+// Number Guessing War – GameRoom sub-contract
+//
+// Payout is band-based — O(1) per claim, no loops, no sorting.
+//
+// Bands (R = numberRangeMax, P = current pot, N = maxPlayers):
+//   distance == 0       → 2.0 × P / N
+//   distance <= R / 20  → 1.5 × P / N
+//   distance <= R / 5   → 1.2 × P / N
+//   else                → 0
+//   defensive: if pot < payout, pay pot
+//
+// Payout is scaled by the **live pot** (not a constant entryFee), so when
+// the pot is full each band matches {2x, 1.5x, 1.2x} entryFee as before,
+// but as concurrent winners drain the pot subsequent payouts shrink
+// proportionally — the contract can never become insolvent.
+//
+// State machine:
+//   OPEN -> LOCKED (room fills) -> CLAIMABLE (randomness resolved after 90s)
+//   OPEN | LOCKED -> EXPIRED (timeout)
+//   CLAIMABLE | EXPIRED -> DESTROYED (all entries cleared)
+//
+// Front-running protection: uses DIA oracle round lockedAtRound + 3
+// (a round that does not exist when bets are placed).
+// Creator may also join their own room.
+//
+// destroySelf! note: Alephium has no native ALPH burn; all leftover pot
+// (after the 5% creator cut) is returned to the creator via destroySelf!.
+
+Contract GameRoom(
+    // ── Immutable ─────────────────────────────────────────────────
+    entryFee: U256,
+    maxPlayers: U256,
+    numberRangeMax: U256,
+    expiresAt: U256,
+    creator: Address,
+    oracle: ByteVec,            // contract id of IDIARandomOracle
+    // ── Mutable ───────────────────────────────────────────────────
+    mut state: U256,
+    mut playerCount: U256,      // decrements as entries are cleared
+    // Distributable pot in attoAlph — equals the sum of entry fees still
+    // unclaimed. Excludes map-entry deposits (FORCE_CLAIM_BONUS * playerCount),
+    // which are held in separate storage slots and refunded on claim/refund.
+    // Invariant: pot == contract's spendable ALPH balance (no drift).
+    mut pot: U256,
+    mut target: U256,
+    mut lockedAt: U256,
+    mut lockedAtRound: U256,
+    // Timestamp (ms) when the room entered a terminal state (CLAIMABLE or
+    // EXPIRED). Gates forceClaim so players have a grace period to self-claim
+    // before a third party can sweep their entry for the bounty.
+    mut finalizedAt: U256,
+    mut creatorFeeEnabled: Bool,  // true when room locked with >= 3 players
+    // Pot value frozen at resolveRandomness() — used by bandPayout so every
+    // player in the same band gets the same amount regardless of claim order.
+    mut snapshotPot: U256
+) {
+
+    // ── Mappings ──────────────────────────────────────────────────
+    // Player is the depositor: they pay the 0.1 ALPH map-entry deposit
+    // directly at joinRoom, and the VM refunds it to whoever is named on
+    // remove!() — the player on claim/refund, or the caller on forceClaim
+    // (keeps force-claim profitable even when the pot is empty).
+    mapping[Address, U256] playerNumber   // cleared on claim / forceClaim / refund
+
+    // ── Events ────────────────────────────────────────────────────
+    event PlayerJoined(roomId: ByteVec, player: Address, number: U256)
+    event RoomLocked(roomId: ByteVec, lockedAtRound: U256)
+    event RoomClaimable(roomId: ByteVec, target: U256)
+    event Claimed(roomId: ByteVec, player: Address, payout: U256)
+    event ForceClaimed(roomId: ByteVec, player: Address, payout: U256, caller: Address)
+    event Refunded(roomId: ByteVec, player: Address)
+    event RoomDestroyed(roomId: ByteVec, creatorCut: U256)
+    event RoomExpired(roomId: ByteVec)
+    event PotBoosted(roomId: ByteVec, booster: Address, amount: U256, newPot: U256)
+
+    // ── States ────────────────────────────────────────────────────
+    const OPEN      = 0
+    const LOCKED    = 1
+    const CLAIMABLE = 2
+    const EXPIRED   = 3
+    const DESTROYED = 4
+
+    // ── Constants ─────────────────────────────────────────────────
+    const CREATOR_FEE_BPS     = 500          // 5%
+    // DIA drand rounds tick every 30s. We wait 3 rounds (~90s) so the
+    // target round did not exist when bets were placed (front-running
+    // protection). The raw round number is monotonically increasing;
+    // the oracle internally maps it to a 1000-slot ring buffer, so
+    // DO NOT pre-modulate before calling getRandomValue.
+    const ROUNDS_DELAY        = 3
+    const RANDOMNESS_DELAY_MS = 90000        // minimum ms before resolveRandomness
+    const LOCKED_TIMEOUT_MS   = 86400000     // 24h emergency exit for LOCKED rooms
+    // Grace period before a third party can forceClaim a player's entry.
+    // Gives the player time to self-claim and collect their own payout.
+    const FORCE_CLAIM_GRACE_MS = 259200000   // 3 days
+
+    // ── Error codes ───────────────────────────────────────────────
+    enum ErrorCodes {
+        RoomNotOpen       = 0
+        RoomNotLocked     = 1
+        RoomNotClaimable  = 2
+        RoomFull          = 4
+        NumberOutOfRange  = 5
+        NotExpired        = 7
+        NotPlayer         = 9
+        AlreadyClaimed    = 11
+        TooEarlyToResolve = 14
+        AlreadyExpired    = 15
+        PlayersRemaining  = 16
+        AlreadyJoined     = 17
+        CannotForceSelf   = 18
+        RoomNotDestroyable = 19
+        TooEarlyToForceClaim = 20
+        RoomEnded            = 21  // boost attempted on EXPIRED or DESTROYED room
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // joinRoom
+    // Caller approves entryFee + mapEntryDeposit!() (0.1 ALPH). The entry
+    // fee flows into the pot; the VM deducts the 0.1 ALPH map deposit
+    // directly from the caller's approved assets on insert!() and keeps it
+    // aside until the entry is removed. When the room fills it locks and
+    // snapshots the current DIA round for anti-frontrunning.
+    // ─────────────────────────────────────────────────────────────
+    @using(preapprovedAssets = true, assetsInContract = true, updateFields = true, checkExternalCaller = false)
+    pub fn joinRoom(number: U256) -> () {
+        assert!(state == OPEN, ErrorCodes.RoomNotOpen)
+        assert!(blockTimeStamp!() < expiresAt, ErrorCodes.AlreadyExpired)
+
+        let caller = callerAddress!()
+        assert!(number >= 1 && number <= numberRangeMax, ErrorCodes.NumberOutOfRange)
+        assert!(playerCount < maxPlayers, ErrorCodes.RoomFull)
+        assert!(!playerNumber.contains!(caller), ErrorCodes.AlreadyJoined)
+
+        transferTokenToSelf!(caller, ALPH, entryFee)
+        pot = pot + entryFee
+
+        // Caller pays the 0.1 ALPH map-entry deposit directly from their
+        // remaining approved assets; refunded on claim/refund/forceClaim.
+        playerNumber.insert!(caller, caller, number)
+        playerCount = playerCount + 1
+
+        emit PlayerJoined(selfContractId!(), caller, number)
+
+        if (playerCount == maxPlayers) {
+            let diaOracle = IDIARandomOracle(oracle)
+            lockedAtRound = diaOracle.getLastRound()
+            lockedAt = blockTimeStamp!()
+            creatorFeeEnabled = playerCount >= 3
+            state = LOCKED
+            emit RoomLocked(selfContractId!(), lockedAtRound)
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // resolveRandomness
+    // Anyone calls this >= 90s after lock. Uses oracle round lockedAtRound + 3
+    // (unknown at bet time) to derive the target.
+    // ─────────────────────────────────────────────────────────────
+    @using(updateFields = true, checkExternalCaller = false)
+    pub fn resolveRandomness() -> () {
+        assert!(state == LOCKED, ErrorCodes.RoomNotLocked)
+        assert!(blockTimeStamp!() >= lockedAt + RANDOMNESS_DELAY_MS, ErrorCodes.TooEarlyToResolve)
+
+        // drand emits one signed 32-byte beacon per round on a fixed schedule.
+        // Round lockedAtRound + ROUNDS_DELAY does not exist yet when bets are
+        // placed, and once emitted nobody (not miners, not callers) can bias
+        // its value — so we use it directly, no hashing or mixing needed.
+        let randValue = IDIARandomOracle(oracle).getRandomValue(lockedAtRound + ROUNDS_DELAY)
+        target = u256From32Byte!(randValue.randomness) % numberRangeMax + 1
+        snapshotPot = pot
+        state = CLAIMABLE
+        finalizedAt = blockTimeStamp!()
+
+        emit RoomClaimable(selfContractId!(), target)
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // claim — O(1) band payout, clears the caller's map entry.
+    // The VM refunds the caller's 0.1 ALPH map-entry deposit automatically.
+    // ─────────────────────────────────────────────────────────────
+    @using(assetsInContract = true, updateFields = true, checkExternalCaller = false)
+    pub fn claim() -> () {
+        assert!(state == CLAIMABLE, ErrorCodes.RoomNotClaimable)
+
+        let caller = callerAddress!()
+        assert!(playerNumber.contains!(caller), ErrorCodes.AlreadyClaimed)
+
+        let num = playerNumber[caller]
+        let pay = bandPayout(num)
+        let actualPay = if (pay > pot) pot else pay
+
+        playerNumber.remove!(caller, caller)
+        playerCount = playerCount - 1
+        pot = pot - actualPay
+
+        if (actualPay > 0) {
+            transferTokenFromSelf!(caller, ALPH, actualPay)
+        }
+
+        emit Claimed(selfContractId!(), caller, actualPay)
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // forceClaim — after a 24h grace period, anyone can clear a stale
+    // player entry on their behalf and pocket the whole bounty:
+    //   - the band payout the player would have received
+    //   - the 0.1 ALPH map-entry deposit (routed by the VM via remove!)
+    // The grace period gives the player time to self-claim; after that,
+    // we incentivize cleanup so the room can eventually be destroyed.
+    // ─────────────────────────────────────────────────────────────
+    @using(assetsInContract = true, updateFields = true, checkExternalCaller = false)
+    pub fn forceClaim(player: Address) -> () {
+        assert!(state == CLAIMABLE || state == EXPIRED, ErrorCodes.RoomNotClaimable)
+        assert!(playerNumber.contains!(player), ErrorCodes.NotPlayer)
+        assert!(blockTimeStamp!() >= finalizedAt + FORCE_CLAIM_GRACE_MS, ErrorCodes.TooEarlyToForceClaim)
+
+        let caller = callerAddress!()
+        assert!(caller != player, ErrorCodes.CannotForceSelf)
+
+        let num = playerNumber[player]
+        let pay = if (state == CLAIMABLE) bandPayout(num) else entryFee
+        let actualPay = if (pay > pot) pot else pay
+
+        // VM routes the freed 0.1 ALPH deposit to `caller` as part of the bounty.
+        playerNumber.remove!(caller, player)
+        playerCount = playerCount - 1
+        pot = pot - actualPay
+
+        // Player's entitlement also goes to the caller as cleanup reward.
+        if (actualPay > 0) {
+            transferTokenFromSelf!(caller, ALPH, actualPay)
+        }
+
+        emit ForceClaimed(selfContractId!(), player, actualPay, caller)
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // refund — players recover entry fee when room is EXPIRED.
+    // The VM refunds the 0.1 ALPH map deposit alongside.
+    // ─────────────────────────────────────────────────────────────
+    @using(assetsInContract = true, updateFields = true, checkExternalCaller = false)
+    pub fn refund() -> () {
+        assert!(state == EXPIRED, ErrorCodes.RoomNotClaimable)
+
+        let caller = callerAddress!()
+        assert!(playerNumber.contains!(caller), ErrorCodes.NotPlayer)
+
+        playerNumber.remove!(caller, caller)
+        playerCount = playerCount - 1
+        pot = pot - entryFee
+
+        transferTokenFromSelf!(caller, ALPH, entryFee)
+        emit Refunded(selfContractId!(), caller)
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // expireRoom — mark EXPIRED when conditions are met
+    //   OPEN: past expiresAt and room not full
+    //   LOCKED: oracle unavailable for 24h (emergency)
+    // ─────────────────────────────────────────────────────────────
+    @using(updateFields = true, checkExternalCaller = false)
+    pub fn expireRoom() -> () {
+        let ts = blockTimeStamp!()
+        if (state == OPEN) {
+            assert!(ts >= expiresAt, ErrorCodes.NotExpired)
+        } else if (state == LOCKED) {
+            assert!(ts >= lockedAt + LOCKED_TIMEOUT_MS, ErrorCodes.NotExpired)
+        } else {
+            assert!(false, ErrorCodes.NotExpired)
+        }
+        state = EXPIRED
+        finalizedAt = ts
+        emit RoomExpired(selfContractId!())
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // boostPot — anyone can add ALPH to the pot at any time while
+    // the room is still active (OPEN, LOCKED, or CLAIMABLE).
+    //
+    // Boost before the draw (OPEN / LOCKED): snapshotPot captures the
+    // boosted value at resolveRandomness, so every player's expected
+    // payout increases proportionally.
+    //
+    // Boost after the draw (CLAIMABLE): snapshotPot is already frozen,
+    // so displayed payouts don't change, but the extra ALPH reduces the
+    // risk of the solvency clamp triggering for late claimers.
+    // ─────────────────────────────────────────────────────────────
+    @using(preapprovedAssets = true, assetsInContract = true, updateFields = true, checkExternalCaller = false)
+    pub fn boostPot(amount: U256) -> () {
+        assert!(state == OPEN || state == LOCKED || state == CLAIMABLE, ErrorCodes.RoomEnded)
+
+        let caller = callerAddress!()
+        transferTokenToSelf!(caller, ALPH, amount)
+        pot = pot + amount
+
+        emit PotBoosted(selfContractId!(), caller, amount, pot)
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // destroy — anyone calls once playerCount == 0
+    // Creator receives 5% of the remaining pot (only if >= 3 players joined).
+    // destroySelf! sends ALL remaining contract ALPH (leftover pot + freed
+    // map deposits + storage deposit) to the creator.
+    // Note: Alephium has no native ALPH burn. The "burn" described in the spec
+    // is implemented as the creator receiving the remainder via destroySelf!.
+    // ─────────────────────────────────────────────────────────────
+    @using(assetsInContract = true, updateFields = true, checkExternalCaller = false)
+    pub fn destroy() -> () {
+        assert!(state == CLAIMABLE || state == EXPIRED, ErrorCodes.RoomNotDestroyable)
+        assert!(playerCount == 0, ErrorCodes.PlayersRemaining)
+
+        let creatorCut = if (creatorFeeEnabled && pot > 0) pot * CREATOR_FEE_BPS / 10000 else 0
+
+        state = DESTROYED
+        emit RoomDestroyed(selfContractId!(), creatorCut)
+
+        if (creatorCut > 0) {
+            transferTokenFromSelf!(creator, ALPH, creatorCut)
+        }
+
+        destroySelf!(creator)
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // View functions
+    // ─────────────────────────────────────────────────────────────
+
+    pub fn getState() -> U256 {
+        return state
+    }
+
+    pub fn getPlayerCount() -> U256 {
+        return playerCount
+    }
+
+    pub fn getTarget() -> U256 {
+        return target
+    }
+
+    pub fn getPot() -> U256 {
+        return pot
+    }
+
+    pub fn getPlayerPayout(player: Address) -> U256 {
+        if (state != CLAIMABLE) { return 0 }
+        if (!playerNumber.contains!(player)) { return 0 }
+        let num = playerNumber[player]
+        // bandPayout uses snapshotPot so this view is stable across all claims.
+        return bandPayout(num)
+    }
+
+    pub fn getRoomInfo() -> (U256, U256, U256, U256, Address) {
+        return entryFee, maxPlayers, numberRangeMax, expiresAt, creator
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Private helpers
+    // ─────────────────────────────────────────────────────────────
+
+    // Band-based payout: integer math, no division ambiguity.
+    // Payout scales with the live pot, so the contract is solvent by
+    // construction (every claim can cost at most 2 * pot / maxPlayers,
+    // and maxPlayers >= 2 is enforced by the factory).
+    fn bandPayout(num: U256) -> U256 {
+        let dist = absDiff(num, target)
+        // Use snapshotPot (frozen at resolveRandomness) so every player in the
+        // same band gets the same computed amount regardless of claim order.
+        // The actualPay clamp in claim() still protects solvency.
+        if (dist == 0) {
+            return snapshotPot * 2 / maxPlayers
+        } else if (dist <= numberRangeMax / 20) {
+            return snapshotPot * 15 / 10 / maxPlayers
+        } else if (dist <= numberRangeMax / 5) {
+            return snapshotPot * 12 / 10 / maxPlayers
+        } else {
+            return 0
+        }
+    }
+
+    fn absDiff(a: U256, b: U256) -> U256 {
+        if (a >= b) { return a - b }
+        return b - a
+    }
+}

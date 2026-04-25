@@ -1,0 +1,12 @@
+// DIA Randomness Oracle interface and struct for the Number Guessing War game
+
+struct DIARandomValue {
+    mut randomness: ByteVec,
+    mut signature: ByteVec,
+    mut round: U256
+}
+
+Interface IDIARandomOracle {
+    pub fn getLastRound() -> U256
+    pub fn getRandomValue(round: U256) -> DIARandomValue
+}

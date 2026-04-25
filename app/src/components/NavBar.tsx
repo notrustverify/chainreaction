@@ -9,10 +9,6 @@ import { useEmbeddedWallet } from '@/embed/EmbeddedWalletContext'
 import { isEmbedded } from '@/embed/walletBridge'
 import { shortenAddress } from '@/services/game.service'
 
-/**
- * Fallback when NavBar suspends (useSearchParams). Same layout, plain links.
- * Used so 404 and static pages can build without a Suspense bailout.
- */
 function NavBarFallback() {
   return (
     <nav className="w-full flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-nav-border">
@@ -26,6 +22,9 @@ function NavBarFallback() {
           </Link>
           <Link href="/leaderboard" className="text-sm font-medium whitespace-nowrap text-nav-link hover:text-nav-link-hover">
             Leaderboard
+          </Link>
+          <Link href="/guess" className="text-sm font-medium whitespace-nowrap text-nav-link hover:text-nav-link-hover">
+            Guess
           </Link>
           <Link href="/how-to-play" className="text-sm font-medium whitespace-nowrap text-nav-link hover:text-nav-link-hover">
             Rules
@@ -71,6 +70,14 @@ const NavBarInner = forwardRef<HTMLDivElement>(function NavBarInner(_, ref) {
             }`}
           >
             Leaderboard
+          </Link>
+          <Link
+            href={appendPreservedParamsToHref('/guess', preserved)}
+            className={`text-sm font-medium whitespace-nowrap transition-colors ${
+              pathname?.startsWith('/guess') ? 'text-nav-link-active' : 'text-nav-link hover:text-nav-link-hover'
+            }`}
+          >
+            Guess
           </Link>
           <Link
             href={appendPreservedParamsToHref('/how-to-play', preserved)}

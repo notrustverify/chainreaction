@@ -1,0 +1,62 @@
+{
+  "version": "v4.3.0",
+  "name": "MockDIAOracle",
+  "bytecode": "02030e40214030010000000103d36393ea60a00002010001010305d3b2bf32d0ce00140100160002010001010003d3142efa381600a100",
+  "codeHash": "4802889283ec3c680c4fa39909691e50e8fd29bd1610365bed6b8dc19042211c",
+  "fieldsSig": {
+    "names": [
+      "lastRound",
+      "randomBytes"
+    ],
+    "types": [
+      "U256",
+      "ByteVec"
+    ],
+    "isMutable": [
+      true,
+      false
+    ]
+  },
+  "eventsSig": [],
+  "functions": [
+    {
+      "name": "getLastRound",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "U256"
+      ]
+    },
+    {
+      "name": "getRandomValue",
+      "paramNames": [
+        "round"
+      ],
+      "paramTypes": [
+        "U256"
+      ],
+      "paramIsMutable": [
+        false
+      ],
+      "returnTypes": [
+        "DIARandomValue"
+      ]
+    },
+    {
+      "name": "setRound",
+      "paramNames": [
+        "round"
+      ],
+      "paramTypes": [
+        "U256"
+      ],
+      "paramIsMutable": [
+        false
+      ],
+      "returnTypes": []
+    }
+  ],
+  "constants": [],
+  "enums": []
+}

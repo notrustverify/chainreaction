@@ -1,0 +1,124 @@
+{
+  "version": "v4.3.0",
+  "name": "GameHubFactory",
+  "bytecode": "030340724080408e01030409014046d3c9498a0116010e340c7b16021314340d7b160356330e7b16000c330f7bb4170416001601160216031604ce011306640c0c0c0c0c0c0c040c13096417061705a0004017071604d1a21607ce0016051606c11708a0000d2aa1000516081604160016011602160374160802010000000103d310af6778a00002010000000103d3d9ff4925ce0102",
+  "codeHash": "d0d3cf79f3d841014bbb3700d93a98f163edb14fc15a047fff772aadb69d412b",
+  "fieldsSig": {
+    "names": [
+      "gameRoomTemplateId",
+      "oracleContractId",
+      "totalRooms"
+    ],
+    "types": [
+      "ByteVec",
+      "ByteVec",
+      "U256"
+    ],
+    "isMutable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "eventsSig": [
+    {
+      "name": "RoomCreated",
+      "fieldNames": [
+        "roomContractId",
+        "creator",
+        "entryFee",
+        "maxPlayers",
+        "numberRangeMax",
+        "expiresAt"
+      ],
+      "fieldTypes": [
+        "ByteVec",
+        "Address",
+        "U256",
+        "U256",
+        "U256",
+        "U256"
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "createRoom",
+      "paramNames": [
+        "entryFee",
+        "maxPlayers",
+        "numberRangeMax",
+        "expiresAt"
+      ],
+      "paramTypes": [
+        "U256",
+        "U256",
+        "U256",
+        "U256"
+      ],
+      "paramIsMutable": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "returnTypes": [
+        "ByteVec"
+      ]
+    },
+    {
+      "name": "getTotalRooms",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "U256"
+      ]
+    },
+    {
+      "name": "getOracleContractId",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "ByteVec"
+      ]
+    }
+  ],
+  "constants": [],
+  "enums": [
+    {
+      "name": "ErrorCodes",
+      "fields": [
+        {
+          "name": "InvalidMaxPlayers",
+          "value": {
+            "type": "U256",
+            "value": "0"
+          }
+        },
+        {
+          "name": "InvalidNumberRange",
+          "value": {
+            "type": "U256",
+            "value": "1"
+          }
+        },
+        {
+          "name": "InvalidExpiresAt",
+          "value": {
+            "type": "U256",
+            "value": "2"
+          }
+        },
+        {
+          "name": "InvalidEntryFee",
+          "value": {
+            "type": "U256",
+            "value": "3"
+          }
+        }
+      ]
+    }
+  ]
+}

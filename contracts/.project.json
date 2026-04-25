@@ -1,5 +1,5 @@
 {
-  "fullNodeVersion": "v4.3.1",
+  "fullNodeVersion": "v4.5.1",
   "compilerOptionsUsed": {
     "ignoreUnusedConstantsWarnings": false,
     "ignoreUnusedVariablesWarnings": false,
@@ -30,6 +30,12 @@
       "bytecodeDebugPatch": "",
       "codeHashDebug": "61069fdba1b27971e41e23be8f85c086bb8c12fdd6f2de27ce87bcbbafb824aa"
     },
+    "DIARandomValue": {
+      "sourceFile": "DIAOracle.ral",
+      "sourceCodeHash": "7e1c4aa0225096719d6d7728a895e05d64406a395165499e56f33d4e51466fb9",
+      "bytecodeDebugPatch": "",
+      "codeHashDebug": ""
+    },
     "FactoryChainReaction": {
       "sourceFile": "factory.ral",
       "sourceCodeHash": "0cba83b5150a97718f7ba22c5be1ffa76151d9e524682d0f4eb929ef90e8982c",
@@ -41,6 +47,30 @@
       "sourceCodeHash": "47357db31e7d25ba7959a25ee974a22bcd8976db58f3b6b710bc19f18683dd85",
       "bytecodeDebugPatch": "",
       "codeHashDebug": "74aedc46a5e29dfb413873ea10a2f8c89ae78bd1c8757a587631331fe6e5faa2"
+    },
+    "GameHubFactory": {
+      "sourceFile": "GameHub.ral",
+      "sourceCodeHash": "2940fc936d872357ba5defda2cd5cb948de02338d5587971e40cf04dc6e99258",
+      "bytecodeDebugPatch": "",
+      "codeHashDebug": "d0d3cf79f3d841014bbb3700d93a98f163edb14fc15a047fff772aadb69d412b"
+    },
+    "GameRoom": {
+      "sourceFile": "GameRoom.ral",
+      "sourceCodeHash": "c73a55fff70fea705521e95e3f04142cf626c860b0ef582b4af95392745fcb8b",
+      "bytecodeDebugPatch": "=6-2+bb=1+1=1-2+6=2-1=1-4+c=2-2+7b=2-1+e=2+3=2-1=2-1+6=3-2+c0=2-2+ce=2-2+dc=2-2+ea=2-2+f84=3-1=2+55=1-1+4a6=2-1=1+f=13-1+9=194+7a7e0214696e73657274206174206d617020706174683a2000=279-1+4=200+7a7e021472656d6f7665206174206d617020706174683a2000=81-1+d=278+7a7e021472656d6f7665206174206d617020706174683a2000=85-1+a=110+7a7e021472656d6f7665206174206d617020706174683a2000=986",
+      "codeHashDebug": "cc969547eb14bb23c6528fa34b2adea759ab36b9e5a4b7e7e3cc127768c165a0"
+    },
+    "IDIARandomOracle": {
+      "sourceFile": "DIAOracle.ral",
+      "sourceCodeHash": "7e1c4aa0225096719d6d7728a895e05d64406a395165499e56f33d4e51466fb9",
+      "bytecodeDebugPatch": "",
+      "codeHashDebug": ""
+    },
+    "MockDIAOracle": {
+      "sourceFile": "MockDIAOracle.ral",
+      "sourceCodeHash": "3840c0a7eaf60562ce4f68b98064e0fea1448360fa6a02b016278727efb48a76",
+      "bytecodeDebugPatch": "",
+      "codeHashDebug": "4802889283ec3c680c4fa39909691e50e8fd29bd1610365bed6b8dc19042211c"
     }
   }
 }

@@ -1,0 +1,542 @@
+{
+  "version": "v4.3.0",
+  "name": "GameRoom",
+  "bytecode": "0f1040a240ed417a4230428842cc4308435c436a43784386439443db43f14442445b01010103004057d31626f7f1a0000c2f0c7b56ce0331130f7bb4170116000d347a4c04181600ce0232117ba001ce0131107b140a5f5f6d61705f5f305f5f16014744cbc51913117b1601ce00a9a002ce002aa1021601d1a2140a5f5f6d61705f5f305f5f16014744b11600d20101a0010d2aa10105b11601160060a001ce012f4c13ce0517020c0d1602d46393ea60a10556a104a0010f34a1070da10006b1a0055f01000003004028d3d70350aca0000d2f0d7b56a0041380015f902a34130e7ba0050f2a0d0fce05d4b2bf32d0170217011700160071ce022e0d2aa103a002a1080ea10056a10607b1a0035f01020004004042d363ba19b8a0000e2f0e7bb41700140a5f5f6d61705f5f305f5f16004744cbc5130b7b0c0d0d140a5f5f6d61705f5f305f5f16004744cb010117011601000e17021602a002334c02a0024a011602170316000d0c140a5f5f6d61705f5f305f5f16004744cb0103a0010d2ba101a00216032ba10216030c334c0316001603a808b116001603600102010500405bd3d10198cda0000e2f7a4b0418a0000f2f0e7b140a5f5f6d61705f5f305f5f16004744cbc513097b56a006138f7314002a3413147bb41701160116004613127b0c0d0d140a5f5f6d61705f5f305f5f16004744cb01011702a0000e2f4c031602000e4a01ce0017031603a002334c02a0024a011603170416010d0c140a5f5f6d61705f5f305f5f16004744cb0103a0010d2ba101a00216042ba10216040c334c0316011604a809b11600160416016101020001004028d3920288f6a0000f2f0e7bb41700140a5f5f6d61705f5f305f5f16004744cbc513097b16000d0c140a5f5f6d61705f5f305f5f16004744cb0103a0010d2ba101a002ce002ba1021600ce00a80ab116005f01000001004023d36102bf1c561700a0000c2f4c061600ce033413077b4a0fa0000d2f4c081600a0041385265c002a3413077b4a030413077b0fa1001600a1061207b15e01010102004021d306a8647ea0000c2f7a4b0418a0000d2f7a4b0418a0000e2f13157bb4170116011600a9a00216002aa1021208b116011600a0026101020001004030d38e18691ca0000e2f7a4b0418a0000f2f13137ba0010c2f13107ba0077a4c0418a0020c334c06a0021341f42c1367102d4a010c170010a1001206b116005f16000c334c03ce041600a8ce04b0010000000103d322e83b05a00002010000000103d3f09bc53aa00102010000000103d39d7311eba00302010000000103d339df7597a0020201000102011ed3e99df4f9a0000e304c020c02140a5f5f6d61705f5f305f5f16004744cbc5194c020c020c0d0d140a5f5f6d61705f5f305f5f16004744cb010117011601000e02010000000507d372cb4979ce00ce01ce02ce03ce04020000010201402f1600a003000f170116010c2f4c07a0080e2cce012d024a40201601ce0213142d324c09a008130f2c130a2dce012d024a111601ce02112d324c09a008130c2c130a2dce012d024a020c0200000202010c16001601344c04160016012b02160116002b02",
+  "codeHash": "0982dd5e0133f8fb70a9bcff08c5a46c1c0eb827c91c8f70b993baa02380ebec",
+  "fieldsSig": {
+    "names": [
+      "entryFee",
+      "maxPlayers",
+      "numberRangeMax",
+      "expiresAt",
+      "creator",
+      "oracle",
+      "state",
+      "playerCount",
+      "pot",
+      "target",
+      "lockedAt",
+      "lockedAtRound",
+      "finalizedAt",
+      "creatorFeeEnabled",
+      "snapshotPot"
+    ],
+    "types": [
+      "U256",
+      "U256",
+      "U256",
+      "U256",
+      "Address",
+      "ByteVec",
+      "U256",
+      "U256",
+      "U256",
+      "U256",
+      "U256",
+      "U256",
+      "U256",
+      "Bool",
+      "U256"
+    ],
+    "isMutable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "eventsSig": [
+    {
+      "name": "PlayerJoined",
+      "fieldNames": [
+        "roomId",
+        "player",
+        "number"
+      ],
+      "fieldTypes": [
+        "ByteVec",
+        "Address",
+        "U256"
+      ]
+    },
+    {
+      "name": "RoomLocked",
+      "fieldNames": [
+        "roomId",
+        "lockedAtRound"
+      ],
+      "fieldTypes": [
+        "ByteVec",
+        "U256"
+      ]
+    },
+    {
+      "name": "RoomClaimable",
+      "fieldNames": [
+        "roomId",
+        "target"
+      ],
+      "fieldTypes": [
+        "ByteVec",
+        "U256"
+      ]
+    },
+    {
+      "name": "Claimed",
+      "fieldNames": [
+        "roomId",
+        "player",
+        "payout"
+      ],
+      "fieldTypes": [
+        "ByteVec",
+        "Address",
+        "U256"
+      ]
+    },
+    {
+      "name": "ForceClaimed",
+      "fieldNames": [
+        "roomId",
+        "player",
+        "payout",
+        "caller"
+      ],
+      "fieldTypes": [
+        "ByteVec",
+        "Address",
+        "U256",
+        "Address"
+      ]
+    },
+    {
+      "name": "Refunded",
+      "fieldNames": [
+        "roomId",
+        "player"
+      ],
+      "fieldTypes": [
+        "ByteVec",
+        "Address"
+      ]
+    },
+    {
+      "name": "RoomDestroyed",
+      "fieldNames": [
+        "roomId",
+        "creatorCut"
+      ],
+      "fieldTypes": [
+        "ByteVec",
+        "U256"
+      ]
+    },
+    {
+      "name": "RoomExpired",
+      "fieldNames": [
+        "roomId"
+      ],
+      "fieldTypes": [
+        "ByteVec"
+      ]
+    },
+    {
+      "name": "PotBoosted",
+      "fieldNames": [
+        "roomId",
+        "booster",
+        "amount",
+        "newPot"
+      ],
+      "fieldTypes": [
+        "ByteVec",
+        "Address",
+        "U256",
+        "U256"
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "joinRoom",
+      "paramNames": [
+        "number"
+      ],
+      "paramTypes": [
+        "U256"
+      ],
+      "paramIsMutable": [
+        false
+      ],
+      "returnTypes": []
+    },
+    {
+      "name": "resolveRandomness",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": []
+    },
+    {
+      "name": "claim",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": []
+    },
+    {
+      "name": "forceClaim",
+      "paramNames": [
+        "player"
+      ],
+      "paramTypes": [
+        "Address"
+      ],
+      "paramIsMutable": [
+        false
+      ],
+      "returnTypes": []
+    },
+    {
+      "name": "refund",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": []
+    },
+    {
+      "name": "expireRoom",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": []
+    },
+    {
+      "name": "boostPot",
+      "paramNames": [
+        "amount"
+      ],
+      "paramTypes": [
+        "U256"
+      ],
+      "paramIsMutable": [
+        false
+      ],
+      "returnTypes": []
+    },
+    {
+      "name": "destroy",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": []
+    },
+    {
+      "name": "getState",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "U256"
+      ]
+    },
+    {
+      "name": "getPlayerCount",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "U256"
+      ]
+    },
+    {
+      "name": "getTarget",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "U256"
+      ]
+    },
+    {
+      "name": "getPot",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "U256"
+      ]
+    },
+    {
+      "name": "getPlayerPayout",
+      "paramNames": [
+        "player"
+      ],
+      "paramTypes": [
+        "Address"
+      ],
+      "paramIsMutable": [
+        false
+      ],
+      "returnTypes": [
+        "U256"
+      ]
+    },
+    {
+      "name": "getRoomInfo",
+      "paramNames": [],
+      "paramTypes": [],
+      "paramIsMutable": [],
+      "returnTypes": [
+        "U256",
+        "U256",
+        "U256",
+        "U256",
+        "Address"
+      ]
+    },
+    {
+      "name": "bandPayout",
+      "paramNames": [
+        "num"
+      ],
+      "paramTypes": [
+        "U256"
+      ],
+      "paramIsMutable": [
+        false
+      ],
+      "returnTypes": [
+        "U256"
+      ]
+    },
+    {
+      "name": "absDiff",
+      "paramNames": [
+        "a",
+        "b"
+      ],
+      "paramTypes": [
+        "U256",
+        "U256"
+      ],
+      "paramIsMutable": [
+        false,
+        false
+      ],
+      "returnTypes": [
+        "U256"
+      ]
+    }
+  ],
+  "constants": [
+    {
+      "name": "OPEN",
+      "value": {
+        "type": "U256",
+        "value": "0"
+      }
+    },
+    {
+      "name": "LOCKED",
+      "value": {
+        "type": "U256",
+        "value": "1"
+      }
+    },
+    {
+      "name": "CLAIMABLE",
+      "value": {
+        "type": "U256",
+        "value": "2"
+      }
+    },
+    {
+      "name": "EXPIRED",
+      "value": {
+        "type": "U256",
+        "value": "3"
+      }
+    },
+    {
+      "name": "DESTROYED",
+      "value": {
+        "type": "U256",
+        "value": "4"
+      }
+    },
+    {
+      "name": "CREATOR_FEE_BPS",
+      "value": {
+        "type": "U256",
+        "value": "500"
+      }
+    },
+    {
+      "name": "ROUNDS_DELAY",
+      "value": {
+        "type": "U256",
+        "value": "3"
+      }
+    },
+    {
+      "name": "RANDOMNESS_DELAY_MS",
+      "value": {
+        "type": "U256",
+        "value": "90000"
+      }
+    },
+    {
+      "name": "LOCKED_TIMEOUT_MS",
+      "value": {
+        "type": "U256",
+        "value": "86400000"
+      }
+    },
+    {
+      "name": "FORCE_CLAIM_GRACE_MS",
+      "value": {
+        "type": "U256",
+        "value": "259200000"
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "ErrorCodes",
+      "fields": [
+        {
+          "name": "RoomNotOpen",
+          "value": {
+            "type": "U256",
+            "value": "0"
+          }
+        },
+        {
+          "name": "RoomNotLocked",
+          "value": {
+            "type": "U256",
+            "value": "1"
+          }
+        },
+        {
+          "name": "RoomNotClaimable",
+          "value": {
+            "type": "U256",
+            "value": "2"
+          }
+        },
+        {
+          "name": "RoomFull",
+          "value": {
+            "type": "U256",
+            "value": "4"
+          }
+        },
+        {
+          "name": "NumberOutOfRange",
+          "value": {
+            "type": "U256",
+            "value": "5"
+          }
+        },
+        {
+          "name": "NotExpired",
+          "value": {
+            "type": "U256",
+            "value": "7"
+          }
+        },
+        {
+          "name": "NotPlayer",
+          "value": {
+            "type": "U256",
+            "value": "9"
+          }
+        },
+        {
+          "name": "AlreadyClaimed",
+          "value": {
+            "type": "U256",
+            "value": "11"
+          }
+        },
+        {
+          "name": "TooEarlyToResolve",
+          "value": {
+            "type": "U256",
+            "value": "14"
+          }
+        },
+        {
+          "name": "AlreadyExpired",
+          "value": {
+            "type": "U256",
+            "value": "15"
+          }
+        },
+        {
+          "name": "PlayersRemaining",
+          "value": {
+            "type": "U256",
+            "value": "16"
+          }
+        },
+        {
+          "name": "AlreadyJoined",
+          "value": {
+            "type": "U256",
+            "value": "17"
+          }
+        },
+        {
+          "name": "CannotForceSelf",
+          "value": {
+            "type": "U256",
+            "value": "18"
+          }
+        },
+        {
+          "name": "RoomNotDestroyable",
+          "value": {
+            "type": "U256",
+            "value": "19"
+          }
+        },
+        {
+          "name": "TooEarlyToForceClaim",
+          "value": {
+            "type": "U256",
+            "value": "20"
+          }
+        },
+        {
+          "name": "RoomEnded",
+          "value": {
+            "type": "U256",
+            "value": "21"
+          }
+        }
+      ]
+    }
+  ],
+  "mapsSig": {
+    "names": [
+      "playerNumber"
+    ],
+    "types": [
+      "Map[Address,U256]"
+    ]
+  }
+}

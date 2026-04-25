@@ -28,6 +28,19 @@ export function getNodeUrl(network: NetworkId): string {
   }
 }
 
+export function getExplorerBaseUrl(network: NetworkId = getNetwork()): string | null {
+  switch (network) {
+    case 'testnet': return 'https://testnet.alephium.org'
+    case 'mainnet': return 'https://explorer.alephium.org'
+    default: return null
+  }
+}
+
+export function getTxExplorerUrl(txId: string, network: NetworkId = getNetwork()): string | null {
+  const base = getExplorerBaseUrl(network)
+  return base ? `${base}/transactions/${txId}` : null
+}
+
 function getGameConfig(): GameConfig {
   const network = getNetwork()
   web3.setCurrentNodeProvider(getNodeUrl(network))

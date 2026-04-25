@@ -1,0 +1,94 @@
+// Number Guessing War – GameHubFactory
+//
+// Creates GameRoom sub-contracts. Stores the DIA oracle contract id so all
+// rooms use the same oracle. No protocol fee.
+
+Contract GameHubFactory(
+    gameRoomTemplateId: ByteVec,
+    oracleContractId: ByteVec,
+    mut totalRooms: U256
+) {
+
+    event RoomCreated(
+        roomContractId: ByteVec,
+        creator: Address,
+        entryFee: U256,
+        maxPlayers: U256,
+        numberRangeMax: U256,
+        expiresAt: U256
+    )
+
+    enum ErrorCodes {
+        InvalidMaxPlayers  = 0
+        InvalidNumberRange = 1
+        InvalidExpiresAt   = 2
+        InvalidEntryFee    = 3
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // createRoom
+    // Caller pays the sub-contract creation deposit (minimalContractDeposit!()).
+    // ─────────────────────────────────────────────────────────────
+    @using(preapprovedAssets = true, updateFields = true, checkExternalCaller = false)
+    pub fn createRoom(
+        entryFee: U256,
+        maxPlayers: U256,
+        numberRangeMax: U256,
+        expiresAt: U256
+    ) -> ByteVec {
+        assert!(maxPlayers >= 2, ErrorCodes.InvalidMaxPlayers)
+        // numberRangeMax must be >= 20 so that:
+        //   - the top-5% band (R / 20) is at least 1  → non-empty
+        //   - the top-20% band (R / 5)  is at least 4 → non-empty
+        // Prevents games where most/all picks silently collapse into the
+        // exact-match band (guaranteed insolvency for duplicate hits).
+        assert!(numberRangeMax >= 20, ErrorCodes.InvalidNumberRange)
+        assert!(expiresAt > blockTimeStamp!(), ErrorCodes.InvalidExpiresAt)
+        assert!(entryFee > 0, ErrorCodes.InvalidEntryFee)
+
+        let caller = callerAddress!()
+
+        let (initialImmState, initialMutState) = GameRoom.encodeFields!(
+            // ── immutable (must match GameRoom field order exactly) ──
+            entryFee,
+            maxPlayers,
+            numberRangeMax,
+            expiresAt,
+            caller,           // creator
+            oracleContractId, // oracle
+            // ── mutable ──
+            0,      // state = OPEN
+            0,      // playerCount
+            0,      // pot
+            0,      // target
+            0,      // lockedAt
+            0,      // lockedAtRound
+            0,      // finalizedAt
+            false,  // creatorFeeEnabled
+            0       // snapshotPot
+        )
+
+        let roomPath = toByteVec!(totalRooms)
+
+        let roomContractId = copyCreateSubContract!{caller -> ALPH: minimalContractDeposit!()}(
+            roomPath,
+            gameRoomTemplateId,
+            initialImmState,
+            initialMutState
+        )
+
+        totalRooms = totalRooms + 1
+
+        emit RoomCreated(roomContractId, caller, entryFee, maxPlayers, numberRangeMax, expiresAt)
+
+        return roomContractId
+    }
+
+    pub fn getTotalRooms() -> U256 {
+        return totalRooms
+    }
+
+    pub fn getOracleContractId() -> ByteVec {
+        return oracleContractId
+    }
+}

@@ -16,6 +16,10 @@ import {
   ChainReactionV3Instance,
   FactoryChainReactionV2,
   FactoryChainReactionV2Instance,
+  GameRoom,
+  GameRoomInstance,
+  GameHubFactory,
+  GameHubFactoryInstance,
 } from ".";
 import { default as mainnetDeployments } from "../../deployments/.deployments.mainnet.json";
 import { default as testnetDeployments } from "../../deployments/.deployments.testnet.json";
@@ -28,6 +32,8 @@ export type Deployments = {
     FactoryChainReaction: DeployContractExecutionResult<FactoryChainReactionInstance>;
     ChainReactionV3: DeployContractExecutionResult<ChainReactionV3Instance>;
     FactoryChainReactionV2: DeployContractExecutionResult<FactoryChainReactionV2Instance>;
+    GameRoom?: DeployContractExecutionResult<GameRoomInstance>;
+    GameHubFactory?: DeployContractExecutionResult<GameHubFactoryInstance>;
   };
 };
 
@@ -57,6 +63,24 @@ function toDeployments(json: any): Deployments {
         json.contracts["FactoryChainReactionV2"].contractInstance.address
       ),
     },
+    GameRoom:
+      json.contracts["GameRoom"] === undefined
+        ? undefined
+        : {
+            ...json.contracts["GameRoom"],
+            contractInstance: GameRoom.at(
+              json.contracts["GameRoom"].contractInstance.address
+            ),
+          },
+    GameHubFactory:
+      json.contracts["GameHubFactory"] === undefined
+        ? undefined
+        : {
+            ...json.contracts["GameHubFactory"],
+            contractInstance: GameHubFactory.at(
+              json.contracts["GameHubFactory"].contractInstance.address
+            ),
+          },
   };
   return {
     ...json,

@@ -1,0 +1,26 @@
+// Mock DIA randomness oracle — test/devnet only. Never deploy on mainnet.
+//
+// randomBytes must be exactly 32 bytes so u256From32Byte! in GameRoom works.
+// Use all-zero bytes → target = 0 % R + 1 = 1 for any numberRangeMax R.
+
+Contract MockDIAOracle(
+    mut lastRound: U256,
+    randomBytes: ByteVec
+) {
+    pub fn getLastRound() -> U256 {
+        return lastRound
+    }
+
+    pub fn getRandomValue(round: U256) -> DIARandomValue {
+        return DIARandomValue {
+            randomness: randomBytes,
+            signature: #00,
+            round: round
+        }
+    }
+
+    @using(updateFields = true, checkExternalCaller = false)
+    pub fn setRound(round: U256) -> () {
+        lastRound = round
+    }
+}
