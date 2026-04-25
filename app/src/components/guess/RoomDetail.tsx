@@ -29,6 +29,7 @@ import { useRoomPicks, bandPayout, distanceBand } from '@/hooks/useRoomPicks'
 import { RoomPicksChart } from '@/components/guess/RoomPicksChart'
 import { shortenAddress } from '@/services/game.service'
 import { fetchTokenBalance, ALPH_TOKEN } from '@/services/tokenList'
+import { useAlphPrice, formatUsd } from '@/hooks/useAlphPrice'
 import { getTxExplorerUrl } from '@/services/utils'
 
 // Rough estimate of the gas + dust overhead on top of the entry fee for a
@@ -73,6 +74,7 @@ function formatCountdown(ms: number): string {
 export const RoomDetail: FC<Props> = ({ contractAddress, onConnectRequest, onClose }) => {
   const { signer, account } = useWallet()
   const player = account?.address ?? null
+  const alphPrice = useAlphPrice()
   const { info, playerPayout, playerNumber, hasJoined, isLoading, error, refresh } = useGuessRoom(contractAddress, player)
   const { picks } = useRoomPicks(contractAddress)
 
@@ -320,6 +322,9 @@ export const RoomDetail: FC<Props> = ({ contractAddress, onConnectRequest, onClo
         <div className="rounded-xl bg-stat-card-bg p-3">
           <p className="text-[10px] text-label uppercase tracking-wider">Pot</p>
           <p className="text-sm font-bold text-page-heading mt-0.5">{formatAlph(info.pot)} ALPH</p>
+          {alphPrice !== null && (
+            <p className="text-[10px] text-muted mt-0.5">{formatUsd(info.pot, alphPrice)}</p>
+          )}
         </div>
         <div className="rounded-xl bg-stat-card-bg p-3">
           <p className="text-[10px] text-label uppercase tracking-wider">Entry Fee</p>
@@ -395,7 +400,12 @@ export const RoomDetail: FC<Props> = ({ contractAddress, onConnectRequest, onClo
                   {formatAlph(playerPayout)}{' '}
                   <span className="text-base font-medium text-muted">ALPH</span>
                 </p>
-                <p className="text-xs text-muted mt-0.5">{bandLabel}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-muted">{bandLabel}</p>
+                  {alphPrice !== null && (
+                    <p className="text-xs text-muted">&middot; {formatUsd(playerPayout, alphPrice)}</p>
+                  )}
+                </div>
               </div>
               <div className="text-right shrink-0">
                 <p className="text-[10px] font-semibold text-status-success-text">✓ Fixed at draw time</p>
