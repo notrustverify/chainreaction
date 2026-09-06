@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useRef, useCallback, useMemo } from 'react'
-import Link from 'next/link'
 import { GameBoard } from './GameBoard'
 import { GameList } from './GameList'
 import { CreateGame } from './CreateGame'
@@ -29,59 +28,6 @@ export default function Home() {
     <>
       <NewGameAnnouncementModal />
       <main className="flex-1 flex flex-col items-center w-full max-w-6xl px-4 py-8 gap-8">
-
-        {/* Game hub — choose your game */}
-        <section className="w-full flex flex-col items-center gap-4">
-          <h1 className="text-2xl font-bold text-page-heading">Choose your game</h1>
-          <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-            {/* Chain Reaction */}
-            <div className="flex flex-col gap-3 p-6 rounded-2xl border border-card-border bg-card-bg">
-              <h2 className="text-xl font-bold text-page-heading">Chain Reaction</h2>
-              <p className="text-sm text-muted flex-1">
-                Last-player-standing auction. Every new entry raises the price and resets the clock.
-                When time runs out, the last player wins the entire pot.
-              </p>
-              <div className="flex flex-col gap-1.5 text-xs text-label">
-                <span>↑ Entry price grows each round</span>
-                <span>⏱ Timer shrinks with every play</span>
-                <span>🏆 Last player takes the pot</span>
-              </div>
-              <button
-                onClick={scrollToGames}
-                className="mt-2 w-full text-center text-sm font-semibold px-4 py-2.5 rounded-xl bg-primary text-primary-text hover:opacity-90 transition-opacity"
-              >
-                Play Chain Reaction
-              </button>
-            </div>
-
-            {/* Number Guessing War */}
-            <div className="flex flex-col gap-3 p-6 rounded-2xl border border-card-border bg-card-bg">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-page-heading">Number Guessing War</h2>
-                <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-status-warning-bg text-status-claimable">
-                  New
-                </span>
-              </div>
-              <p className="text-sm text-muted flex-1">
-                Pick a number and try to land closest to a drand-powered secret target.
-                Payouts are fixed the moment the target is drawn — no timing advantage.
-              </p>
-              <div className="flex flex-col gap-1.5 text-xs text-label">
-                <span>🎯 Exact hit → 2× your entry</span>
-                <span>🔒 Target drawn by drand beacon (tamper-proof)</span>
-                <span>⚖️ Same payout for everyone in a band</span>
-              </div>
-              <Link
-                href="/guess"
-                className="mt-2 w-full text-center text-sm font-semibold px-4 py-2.5 rounded-xl bg-primary text-primary-text hover:opacity-90 transition-opacity"
-              >
-                Play Number Guessing War
-              </Link>
-            </div>
-
-          </div>
-        </section>
 
         {/* Featured Chain Reaction game */}
         {featuredInstance && (
