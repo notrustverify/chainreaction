@@ -212,16 +212,37 @@ async function sendPush(sub: SubRow, payload: { title: string; body: string }): 
     await webpush.sendNotification(subscription, JSON.stringify(payload))
     console.log(`[push] Sent OK to ${who}`)
   } catch (e: any) {
-    if (e.statusCode === 410 || e.statusCode === 404) {
-      console.log(`[push] Expired subscription for ${who}, removing`)
+    const status: number | undefined = e.statusCode
+    const body = typeof e.body === 'string' ? e.body.slice(0, 200) : ''
+    // 404/410: subscription expired or unsubscribed.
+    // 401/403: VAPID key mismatch (subscription was created with a different key) — never deliverable.
+    // 400: malformed/rejected subscription — never deliverable.
+    if (status === 410 || status === 404 || status === 401 || status === 403 || status === 400) {
+      console.log(`[push] Dead subscription for ${who} (${status} ${body}), removing`)
       return 'expired'
     }
-    console.error(`[push] Send failed to ${who}:`, e.statusCode || e.message)
+    console.error(`[push] Send failed to ${who}:`, status || e.message, body)
   }
   return 'ok'
 }
 
+let polling = false
+
 async function pollContracts() {
+  // Skip this tick if the previous one is still running (slow node or many pushes),
+  // otherwise overlapping polls send duplicate notifications.
+  if (polling) return
+  polling = true
+  try {
+    await pollContractsInner()
+  } catch (e) {
+    console.error('[poll] Unexpected error:', e)
+  } finally {
+    polling = false
+  }
+}
+
+async function pollContractsInner() {
   const contractRows = stmtGetContracts.all() as { contract_address: string }[]
 
   for (const { contract_address: contractAddress } of contractRows) {

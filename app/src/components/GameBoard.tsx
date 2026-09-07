@@ -79,6 +79,7 @@ export const GameBoard: FC<{
     }
     return false
   })
+  const [pushError, setPushError] = useState<string | null>(null)
   const wasLastPlayerRef = useRef(false)
   const dingRef = useRef<HTMLAudioElement | null>(null)
   const notified5minRef = useRef(false)
@@ -173,10 +174,47 @@ export const GameBoard: FC<{
     wasLastPlayerRef.current = isLastPlayer
   }, [isLastPlayer, soundEnabled])
 
+  const pushErrorMessage = (reason: string): string => {
+    const isBrave = typeof navigator !== 'undefined' && !!(navigator as any).brave
+    const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent)
+    const standalone = typeof window !== 'undefined' && (window.matchMedia?.('(display-mode: standalone)').matches || (navigator as any).standalone)
+    switch (reason) {
+      case 'permission-denied':
+        return 'Notifications are blocked. Allow them in your browser\'s site settings and try again.'
+      case 'unsupported':
+        if (isIOS && !standalone) return 'On iPhone/iPad, add this site to your Home Screen to receive notifications.'
+        return 'This browser does not support background notifications.'
+      case 'push-service-error':
+        if (isBrave) return 'Brave blocks push by default. Enable "Use Google services for push messaging" in brave://settings/privacy, then try again.'
+        if (isIOS && !standalone) return 'On iPhone/iPad, add this site to your Home Screen to receive notifications.'
+        return 'Your browser refused the push subscription. Notifications only work while this tab is open.'
+      case 'unconfigured':
+        return 'Background notifications are not configured. You\'ll only be notified while this tab is open.'
+      default:
+        return 'Could not reach the notification server. You\'ll only be notified while this tab is open.'
+    }
+  }
+
+  // Register with the push server. Runs whether or not a game is active so
+  // subscribers also receive "New game started" between rounds.
+  const registerPush = async () => {
+    const endTs = gameState?.isActive && gameState.endTimestamp ? Number(gameState.endTimestamp) : null
+    const result = await subscribeToPush(contractInstance.address, account?.address || null, endTs)
+    console.log('[GameBoard] Push subscribe result:', JSON.stringify(result))
+    setPushError(result.ok ? null : pushErrorMessage(result.reason))
+    return result
+  }
+
   // Send polling config to service worker + register with push server
   // No cleanup — the SW should keep polling even after the tab closes
   useEffect(() => {
-    if (soundEnabled && gameState?.isActive) {
+    if (!soundEnabled) {
+      sendToSW({ type: 'STOP_POLLING' })
+      unsubscribeFromPush(contractInstance.address)
+      setPushError(null)
+      return
+    }
+    if (gameState?.isActive) {
       sendToSW({
         type: 'START_POLLING',
         nodeUrl: getNodeUrl(gameConfig.network),
@@ -185,13 +223,9 @@ export const GameBoard: FC<{
         isLastPlayer: isLastPlayer,
         endTimestamp: gameState.endTimestamp ? Number(gameState.endTimestamp) : null,
       })
-      const endTs = gameState.endTimestamp ? Number(gameState.endTimestamp) : null
-      subscribeToPush(contractInstance.address, account?.address || null, endTs).then(ok => {
-        console.log('[GameBoard] Push subscribe result:', ok)
-      })
-    } else if (!soundEnabled) {
-      sendToSW({ type: 'STOP_POLLING' })
-      unsubscribeFromPush(contractInstance.address)
+    }
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      registerPush()
     }
   }, [soundEnabled, gameState?.isActive, account?.address, contractInstance.address])
 
@@ -445,20 +479,34 @@ export const GameBoard: FC<{
             <button
               onClick={async () => {
                 const enabling = !soundEnabled
-                setSoundEnabled(enabling)
-                localStorage.setItem('chainreaction-notify', enabling ? 'on' : 'off')
-                if (enabling) {
-                  if (!dingRef.current) dingRef.current = new Audio('/ding.mp3')
-                  dingRef.current.play().catch(() => {})
-                  if (typeof Notification !== 'undefined') {
-                    let permission = Notification.permission
-                    if (permission === 'default') {
-                      permission = await Notification.requestPermission()
-                    }
-                    if (permission === 'granted') {
-                      notifyViaSW('Notifications enabled', { body: 'You\'ll be notified when overtaken or when time is running out.', icon: '/favicon.ico' })
-                    }
+                if (!enabling) {
+                  setSoundEnabled(false)
+                  localStorage.setItem('chainreaction-notify', 'off')
+                  return
+                }
+                if (!dingRef.current) dingRef.current = new Audio('/ding.mp3')
+                dingRef.current.play().catch(() => {})
+
+                // Ask for permission first, while still inside the user gesture,
+                // and only flip the toggle on once we know the outcome.
+                let permission: NotificationPermission = 'denied'
+                if (typeof Notification !== 'undefined') {
+                  permission = Notification.permission
+                  if (permission === 'default') {
+                    try { permission = await Notification.requestPermission() } catch { permission = 'denied' }
                   }
+                }
+                setSoundEnabled(true)
+                localStorage.setItem('chainreaction-notify', 'on')
+                if (permission !== 'granted') {
+                  setPushError(pushErrorMessage('permission-denied'))
+                  return
+                }
+                // Subscribe directly from the click so browsers that require a user
+                // gesture for pushManager.subscribe (Safari) accept it.
+                const result = await registerPush()
+                if (result.ok) {
+                  notifyViaSW('Notifications enabled', { body: 'You\'ll be notified when overtaken, when time is running out, and when a new game starts.', icon: '/favicon.ico' })
                 }
               }}
               className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full border transition-colors -mt-2 ${
@@ -470,6 +518,11 @@ export const GameBoard: FC<{
               <span className={`inline-block w-2 h-2 rounded-full ${soundEnabled ? 'bg-notification-on-dot' : 'bg-notification-off-dot'}`} />
               {soundEnabled ? 'Notify when overtaken: on' : 'Notify when overtaken: off'}
             </button>
+            {soundEnabled && pushError && (
+              <p className="text-xs text-notification-error-text text-center max-w-sm -mt-1">
+                {pushError}
+              </p>
+            )}
 
             <GameStats
               pot={gameState.pot}

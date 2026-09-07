@@ -59,24 +59,52 @@ async function getPushConfig() {
   return pushConfig
 }
 
-export async function subscribeToPush(contractAddress: string, userAddress: string | null, endTimestamp?: number | null): Promise<boolean> {
+export type PushSubscribeResult =
+  | { ok: true }
+  | { ok: false; reason: 'unconfigured' | 'unsupported' | 'permission-denied' | 'push-service-error' | 'server-error' | 'network-error'; detail?: string }
+
+// Compare an existing subscription's applicationServerKey with the configured VAPID key.
+// A subscription made with an old key can never be delivered to, so it must be replaced.
+function subscriptionKeyMatches(subscription: PushSubscription, vapidPublicKey: string): boolean {
+  const key = subscription.options?.applicationServerKey
+  if (!key) return true // unknown — assume fine
+  const expected = urlBase64ToUint8Array(vapidPublicKey)
+  const actual = new Uint8Array(key)
+  if (actual.length !== expected.length) return false
+  for (let i = 0; i < actual.length; i++) if (actual[i] !== expected[i]) return false
+  return true
+}
+
+export async function subscribeToPush(contractAddress: string, userAddress: string | null, endTimestamp?: number | null): Promise<PushSubscribeResult> {
   const config = await getPushConfig()
-  console.log('[push] Config loaded:', JSON.stringify(config))
 
   if (!config?.vapidPublicKey || !config?.pushServerUrl) {
     console.warn('[push] Missing pushServerUrl or vapidPublicKey, skipping push subscription')
-    return false
+    return { ok: false, reason: 'unconfigured' }
+  }
+
+  if (typeof window === 'undefined' || !('PushManager' in window)) {
+    return { ok: false, reason: 'unsupported' }
+  }
+
+  if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+    return { ok: false, reason: 'permission-denied' }
   }
 
   const reg = await registerSW()
   if (!reg) {
     console.warn('[push] No SW registration, skipping push subscription')
-    return false
+    return { ok: false, reason: 'unsupported' }
   }
 
+  let subscription: PushSubscription | null
   try {
-    let subscription = await reg.pushManager.getSubscription()
-    console.log('[push] Existing subscription:', subscription ? 'yes' : 'no')
+    subscription = await reg.pushManager.getSubscription()
+    if (subscription && !subscriptionKeyMatches(subscription, config.vapidPublicKey)) {
+      console.log('[push] Existing subscription uses a different VAPID key, resubscribing')
+      await subscription.unsubscribe().catch(() => {})
+      subscription = null
+    }
     if (!subscription) {
       subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -84,7 +112,13 @@ export async function subscribeToPush(contractAddress: string, userAddress: stri
       })
       console.log('[push] New push subscription created')
     }
+  } catch (e: any) {
+    console.warn('[push] pushManager.subscribe failed:', e?.name, e?.message)
+    if (e?.name === 'NotAllowedError') return { ok: false, reason: 'permission-denied', detail: e.message }
+    return { ok: false, reason: 'push-service-error', detail: e?.message }
+  }
 
+  try {
     const res = await fetch(`${config.pushServerUrl}/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -93,14 +127,14 @@ export async function subscribeToPush(contractAddress: string, userAddress: stri
 
     if (res.ok) {
       console.log('[push] Subscribed to push server:', config.pushServerUrl, 'contract:', contractAddress)
-    } else {
-      console.warn('[push] Subscribe failed:', res.status, await res.text())
+      return { ok: true }
     }
-
-    return res.ok
-  } catch (e) {
+    const text = await res.text()
+    console.warn('[push] Subscribe failed:', res.status, text)
+    return { ok: false, reason: 'server-error', detail: `${res.status} ${text}` }
+  } catch (e: any) {
     console.warn('[push] Could not reach push server:', e)
-    return false
+    return { ok: false, reason: 'network-error', detail: e?.message }
   }
 }
 
